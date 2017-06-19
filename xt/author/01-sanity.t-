@@ -1,0 +1,20 @@
+#!perl
+
+use strict;
+use warnings;
+use Test::More 0.98;
+
+use IPC::System::Options qw(system);
+
+subtest level => sub {
+    my ($stdout, $stderr);
+    system(
+        {capture_stdout=>\$stdout, capture_stderr=>\$stderr},
+        $^X, "-MLog::ger", "-MLog::ger::Output=Screen,use_color,0", q(-e'log_trace "trace"; log_debug "debug"; log_info "info"; log_warn "warn"; log_error "error"; log_fatal "fatal"'),
+    );
+    is($stdout, "");
+    is($stderr, "warn\nerror\nfatal\n");
+};
+
+
+done_testing;
