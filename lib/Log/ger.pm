@@ -193,11 +193,11 @@ temporarily when you need to investigate something.
 
 =item * Option to optimize away the logging statements when unnecessary;
 
-See L<Log::ger::Import::OptAway>.
+See L<Log::ger::OptAway>.
 
 =item * Interoperability with other logging frameworks;
 
-See L<Log::ger::Import::LogAny> to interop with L<Log::Any>.
+See L<Log::ger::LogAny> to interop with L<Log::Any>.
 
 =back
 
