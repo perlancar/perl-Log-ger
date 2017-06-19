@@ -165,7 +165,7 @@ In your module (producer):
 In your application:
 
  use Foo;
- use Log::ger::Output::Screen;
+ use Log::ger::Output 'Screen';
 
  foo();
 
