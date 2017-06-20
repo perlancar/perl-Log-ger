@@ -45,7 +45,9 @@ sub import {
                 my $fmt = shift;
                 my @args;
                 for (@_) {
-                    if (ref $_) {
+                    if (!defined($_)) {
+                        push @args, '<undef>';
+                    } elsif (ref $_) {
                         unless ($dumper) {
                             eval { require Data::Dmp };
                             if ($@) {
