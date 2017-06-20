@@ -23,103 +23,156 @@ our %Importers;
 
 our $Current_Level = 3;
 
-our @Hooks_Create_Log_Routine = (
-    sub { ["", sub {0}] },
+my @hooks_before_create_routine;
+
+my @hooks_create_log_routine = (
+    # default: null
+    [90, sub { ["", sub {0}] }, __PACKAGE__],
 );
 
-our @Hooks_Create_Log_Is_Routine = (
-    sub {
-        my %args = @_;
-        my $level = $args{level};
-        my $code = sub {
-            $Current_Level >= $level;
-        };
-        ["", $code];
-    },
+my @hooks_create_log_is_routine = (
+    # default: compare with $Current_Level
+    [90, sub {
+         my %args = @_;
+         my $level = $args{level};
+         my $code = sub {
+             $Current_Level >= $level;
+         };
+         ["", $code];
+     }, __PACKAGE__],
 );
 
-our @Hooks_Install_Routine = (
-    sub {
-        no strict 'refs';
-        no warnings 'redefine';
+my @hooks_after_create_routine;
 
-        my %args = @_;
-        my $package = $args{package};
-        my $name    = $args{name};
-        my $code    = $args{code};
-        *{"$package\::$name"} = $code;
-        ["", 1];
-    },
-);
+my @hooks_after_install_routine;
 
-sub install_to_package {
-    my ($package, %args) = @_;
+sub add_hook {
+    my ($phase, $prio, $hook, $key) = @_;
+
+    my $hooks;
+    if ($phase eq 'before_create_routine') {
+        $hooks = \@hooks_before_create_routine;
+    } elsif ($phase eq 'create_log_routine') {
+        $hooks = \@hooks_create_log_routine;
+    } elsif ($phase eq 'create_log_is_routine') {
+        $hooks = \@hooks_create_log_is_routine;
+    } elsif ($phase eq 'after_create_routine') {
+        $hooks = \@hooks_after_create_routine;
+    } elsif ($phase eq 'after_install_routine') {
+        $hooks = \@hooks_after_install_routine;
+    } else {
+        die "Unknown phase '$phase'";
+    }
+
+    $key ||= caller(0);
+    return 0 if grep { $_->[2] eq $key } @$hooks;
+
+    unshift @$hooks, [$prio, $hook, $key];
+}
+
+sub _setup {
+    my ($target, $target_arg, $caller) = @_;
 
     for my $lname (keys %Levels) {
         my $lnum = $Levels{$lname};
-        my ($res, $code);
 
-        for my $rname ("log_$lname") {
-            #print "D:creating $rname routine ...\n";
-            for my $h (@Hooks_Create_Log_Routine) {
-                $res = $h->(
-                    package   => $package,
-                    name      => $rname,
-                    level     => $lnum,
-                    str_level => $lname,
-                    prev      => $code,
-                );
-                die $res->[0] if $res->[0];
-                if ($res->[1]) {
-                    $code = $res->[1];
-                    last unless $res->[2];
-                }
-            }
-            die "No hooks created log routine '$rname'" unless $code;
-            for my $h (@Hooks_Install_Routine) {
-                $res = $h->(
-                    package   => $package,
-                    name      => $rname,
-                    code      => $code,
-                    level     => $lnum,
-                    str_level => $lname,
-                );
-                die $res->[0] if $res->[0];
-                last if $res->[1];
-            }
+        my ($res, $code_log, $code_log_is);
+        my %hook_args = (
+            caller     => $caller,
+            level      => $lnum,
+            str_level  => $lname,
+        );
+
+        for my $hrec (sort { $a->[0] <=> $b->[0] }
+                          @hooks_before_create_routine) {
+            my $hook = $hrec->[1];
+            $res = $hook->(%hook_args);
+            die $res->[0] if $res->[0];
         }
 
-        $code = undef;
-        for my $rname ("log_is_$lname") {
-            #print "D:creating and installing $rname ...\n";
-            for my $h (@Hooks_Create_Log_Is_Routine) {
-                $res = $h->(
-                    package   => $package,
-                    name      => $rname,
-                    level     => $lnum,
-                    str_level => $lname,
-                    prev      => $code,
-                );
-                die $res->[0] if $res->[0];
-                if ($res->[1]) {
-                    $code = $res->[1];
-                    last unless $res->[2];
-                }
-            }
-            die "No hooks created log routine '$rname'" unless $code;
-            for my $h (@Hooks_Install_Routine) {
-                $res = $h->(
-                    package    => $package,
-                    name       => $rname,
-                    code       => $code,
-                    level      => $lnum,
-                    str_level => $lname,
-                );
-                die $res->[0] if $res->[0];
-                last if $res->[1];
+        my $rname_log = "log_$lname";
+        #print "D:creating $rname_log routine ...\n";
+        for my $hrec (sort { $a->[0] <=> $b->[0] }
+                          @hooks_create_log_routine) {
+            my $h = $hrec->[1];
+            $res = $h->(%hook_args);
+            die $res->[0] if $res->[0];
+            if ($res->[1]) {
+                $code_log = $res->[1];
+                last;
             }
         }
-    }
+        die "No hooks created log routine '$rname_log'" unless $code_log;
+
+        my $rname_log_is = "log_is_$lname";
+        #print "D:creating $rname_log routine ...\n";
+        for my $hrec (sort { $a->[0] <=> $b->[0] }
+                          @hooks_create_log_is_routine) {
+            my $h = $hrec->[1];
+            $res = $h->(%hook_args);
+            die $res->[0] if $res->[0];
+            if ($res->[1]) {
+                $code_log_is = $res->[1];
+                last;
+            }
+        }
+        die "No hooks created log routine '$rname_log_is'" unless $code_log_is;
+
+        #print "D:running after_create_routine for $rname_log routine ...\n";
+        for my $hrec (sort { $a->[0] <=> $b->[0] }
+                          @hooks_after_create_routine) {
+            my $hook = $hrec->[1];
+            $res = $hook->(%hook_args);
+            die $res->[0] if $res->[0];
+        }
+
+        # install
+        if ($target eq 'package') {
+            no strict 'refs';
+            no warnings 'redefine';
+
+            *{"$target_arg\::$rname_log"} = $code_log;
+            *{"$target_arg\::$rname_log_is"} = $code_log_is;
+        } elsif ($target eq 'hash') {
+            $target_arg->{$rname_log} = $code_log;
+            $target_arg->{$rname_log_is} = $code_log_is;
+        } elsif ($target eq 'object') {
+            no strict 'refs';
+            no warnings 'redefine';
+
+            *{"$target_arg\::$rname_log"}    = sub { shift; $code_log->(@_) };
+            *{"$target_arg\::$rname_log_is"} = $code_log_is;
+        }
+
+        for my $hrec (sort { $a->[0] <=> $b->[0] }
+                          @hooks_after_install_routine) {
+            my $h = $hrec->[1];
+            $res = $h->(%hook_args);
+            die $res->[0] if $res->[0];
+        }
+
+    } # for level
+}
+
+sub setup_package {
+    my $package = shift;
+    my $caller = shift || caller(0);
+    _setup('package', $package, $caller);
+}
+
+sub setup_hash {
+    my $caller = shift || caller(0);
+    my $hash = {};
+    _setup('hash', $hash, $caller);
+    $hash;
+}
+
+sub setup_object {
+    my $caller = shift || caller(0);
+    # create a random package, XXX check if already exists?
+    my $pkg = "Log::ger::Object::O".int(100_000_000 + rand()*900_000_000);
+    _setup('object', $pkg, $caller);
+    bless [], $pkg;
 }
 
 sub set_output {
@@ -130,7 +183,7 @@ sub set_output {
     require $mod_pm;
     $mod->import(%args);
     for my $pkg (keys %Importers) {
-        install_to_package($pkg);
+        setup_package($pkg);
     }
 }
 
@@ -139,7 +192,7 @@ sub import {
 
     my $caller = caller(0);
     $Importers{$caller}++;
-    install_to_package($caller);
+    setup_package($caller, $caller);
 }
 
 1;
@@ -214,39 +267,29 @@ argument and is expected to return an array:
 C<$err> is a string and can be set to "" to signify success or a non-empty error
 message to signify error. Log::ger usually dies after a hook returns error.
 
-=head2 Create_Log_Routine hook
+Arguments received by hook: C<caller>, C<name> (name of
+subroutine, e.g. C<log_warn>), C<level> (numeric level).
+
+=over
+
+=item * before_create_routine phase
+
+=item * create_log_routine phase
 
 Used to create "log_I<level>" routines.
 
-Arguments received: C<name> (name of subroutine, e.g. C<log_warn>), C<level>
-(numeric level), C<package>, C<prev> (coderef).
-
 Expected return:
 
- [$err*, $code, $continue]
+ [$err*, $code]
 
 Hook that wants to decline can return undef in C<$code>. Log::ger will stop
-after the hook that produces a non-undef code unless when set to $continue 1
-then Log::ger will continue to the next hook and passing the code to C<prev> to
-allow onion-style nesting of code.
+after the first hook that produces a non-undef code.
 
-=head2 Create_Log_Is_Routine hook
+=head2 create_log_is_routine phase
 
 Used to create "log_I<level>" routines.
 
-=head2 Install_Routine hook
-
-Used to install to the caller (log producer) package.
-
-Arguments: C<package> (target package to install to), C<name> (routine name),
-C<code> (routine code), C<level> (the numeric level of the routine).
-
-Expected return:
-
- [$err*, $installed]
-
-C<$installed> can be set to 1 to signify that the hook has installed the
-routine, so Log::err will stop. Otherwise, Log::ger will try the next hook.
+=head2 after_create_routine phase
 
 =head2 Plans
 
@@ -273,11 +316,9 @@ For example, a la L<Log::Contextual>:
 
  log_warn { 'The number of stuffs is: ' . $obj->stuffs_count };
 
-=item * Multiple outputs, filtering based on category
-
-With the exception of the default/null routines (and perhaps the simple Screen
-output too), the other logging routines should be constructed using a code
-generation approach so we can have multiple outputs, etc.
+can be implemented by a hook in Create_Log_Routine that wraps routine from the
+other hook and perform the conversion from custom formatting to sprintf-style
+(or a single string).
 
 =back
 

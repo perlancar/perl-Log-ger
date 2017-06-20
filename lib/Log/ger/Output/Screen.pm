@@ -8,8 +8,6 @@ use warnings;
 
 use Log::ger ();
 
-#my %Installed_Hooks;
-
 my %colors = (
     1 => "\e[31m"  , # fatal, red
     2 => "\e[35m"  , # error, magenta
@@ -83,10 +81,10 @@ sub import {
             }
             print $handle "\n" unless $msg =~ /\R\z/;
         };
-    ["", $Log::ger::Current_Level >= $level ? $code_print : $code_null];
+        ["", $Log::ger::Current_Level >= $level ? $code_print : $code_null];
     };
 
-    unshift @Log::ger::Hooks_Create_Log_Routine, $hook;
+    Log::ger::add_hook('create_log_routine', 50, $hook);
 }
 
 1;
