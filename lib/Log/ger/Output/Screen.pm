@@ -17,8 +17,6 @@ my %colors = (
     6 => "\e[33m"  , # trace, orange
 );
 
-my $code_null = sub {0};
-
 sub import {
     my ($self, %import_args) = @_;
 
@@ -35,42 +33,8 @@ sub import {
     my $hook = sub {
         my %args = @_;
         my $level = $args{level};
-        my $code_print = sub {
-            my $msg;
-            if (@_ < 2) {
-                $msg = $_[0];
-            } else {
-                my $fmt = shift;
-                my @args;
-                for (@_) {
-                    if (!defined($_)) {
-                        push @args, '<undef>';
-                    } elsif (ref $_) {
-                        unless ($dumper) {
-                            eval { require Data::Dmp };
-                            if ($@) {
-                                require Data::Dumper;
-                                $dumper = sub {
-                                    local $Data::Dumper::Terse = 1;
-                                    local $Data::Dumper::Indent = 0;
-                                    local $Data::Dumper::Useqq = 1;
-                                    local $Data::Dumper::Deparse = 1;
-                                    local $Data::Dumper::Quotekeys = 0;
-                                    local $Data::Dumper::Sortkeys = 1;
-                                    local $Data::Dumper::Trailingcomma = 1;
-                                    Data::Dumper::Dumper($_[0]);
-                                };
-                            } else {
-                                $dumper = sub { Data::Dmp::dmp($_[0]) };
-                            }
-                        }
-                        push @args, $dumper->($_);
-                    } else {
-                        push @args, $_;
-                    }
-                }
-                $msg = sprintf $fmt, @args;
-            }
+        my $code = sub {
+            my $msg = $_[1];
             if ($formatter) {
                 $msg = $formatter->($msg);
             }
@@ -81,7 +45,7 @@ sub import {
             }
             print $handle "\n" unless $msg =~ /\R\z/;
         };
-        ["", $Log::ger::Current_Level >= $level ? $code_print : $code_null];
+        [$code];
     };
 
     Log::ger::add_hook('create_log_routine', 50, $hook);

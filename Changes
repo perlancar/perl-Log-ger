@@ -1,3 +1,12 @@
+0.002    2017-06-20 (PERLANCAR) (unreleased)
+
+         - Reorganize internals.
+
+         - Fix a few typos.
+
+         - Add outputs: Null, String, Composite.
+
+
 0.001    2017-06-19 (PERLANCAR)
 
          - First release.
