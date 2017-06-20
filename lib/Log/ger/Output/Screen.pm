@@ -87,10 +87,6 @@ sub import {
     unshift @Log::ger::Hooks_Create_Log_Routine, $hook;
 }
 
-sub unimport {
-    die "Not supported yet";
-}
-
 1;
 # ABSTRACT: Output log to screen
 
