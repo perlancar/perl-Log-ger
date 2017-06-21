@@ -313,7 +313,7 @@ See L<Log::ger::OptAway>.
 
 =item * Interoperability with other logging frameworks;
 
-See L<Log::ger::LogAny> to interop with L<Log::Any>.
+See L<Log::ger::Output::LogAny> to interop with L<Log::Any>.
 
 =back
 
