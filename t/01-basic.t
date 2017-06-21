@@ -154,6 +154,4 @@ subtest "basics" => sub {
     };
 };
 
-# XXX test Screen output
-
 done_testing;
