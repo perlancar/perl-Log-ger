@@ -347,11 +347,7 @@ For example, a la L<Log::Contextual>:
 
  log_warn { 'The number of stuffs is: ' . $obj->stuffs_count };
 
-See L<Log::ger::Format::Code>.
-
-But note that this creates incompatible interface.
-
-=back
+See L<Log::ger::Format::Block> for an example.
 
 
 =head1 INTERNALS

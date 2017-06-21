@@ -17,6 +17,15 @@ my %colors = (
     6 => "\e[33m"  , # trace, orange
 );
 
+sub hook_before_log {
+    my ($ctx, $msg) = @_;
+}
+
+sub hook_after_log {
+    my ($ctx, $msg) = @_;
+    print { $ctx->{_fh} } "\n" unless $msg =~ /\R\z/;
+}
+
 sub import {
     my ($package, %import_args) = @_;
 
@@ -36,12 +45,13 @@ sub import {
             if ($formatter) {
                 $msg = $formatter->($msg);
             }
+            hook_before_log({ _fh=>$handle }, $msg);
             if ($use_color) {
                 print $handle $colors{$level}, $msg, "\e[0m";
             } else {
                 print $handle $msg;
             }
-            print $handle "\n" unless $msg =~ /\R\z/;
+            hook_after_log({ _fh=>$handle }, $msg);
         };
         [$code];
     };
@@ -52,6 +62,8 @@ sub import {
 
 1;
 # ABSTRACT: Output log to screen
+
+=for Pod::Coverage ^(.+)$
 
 =head1 SYNOPSIS
 

@@ -19,6 +19,8 @@ sub import {
 1;
 # ABSTRACT: Null output
 
+=for Pod::Coverage ^(.+)$
+
 =head1 SYNOPSIS
 
  use Log::ger;
