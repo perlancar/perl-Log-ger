@@ -1,3 +1,8 @@
+0.004   2017-06-21 (PERLANCAR)
+
+	- [Bugfix] Log::ger::Output didn't have VERSION.
+
+
 0.003   2017-06-21 (PERLANCAR)
 
 	- Split Log::err::Output::Screen to its own dist so this dist can
