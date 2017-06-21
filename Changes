@@ -1,3 +1,17 @@
+0.003   2017-06-21 (PERLANCAR)
+
+	- Split Log::err::Output::Screen to its own dist so this dist can
+	  be more minimalist and that module can be tested e.g. with
+	  Capture::Tiny etc.
+
+	- String output: add option append_newline to allow disable
+	  appending newline.
+
+	- import(): No need to turn category 'Foo::Bar' -> 'foo.bar'.
+
+	- [doc] Update module name Log::ger::LogAny -> Log::ger::Output::LogAny.
+
+
 0.002    2017-06-21 (PERLANCAR)
 
          - Reorganize internals & fix a couple of doc typos.
