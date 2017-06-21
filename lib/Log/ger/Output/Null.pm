@@ -5,17 +5,15 @@ package Log::ger::Output::Null;
 
 use Log::ger ();
 
-my $code_null = sub {0};
+sub PRIO_create_log_routine { 50 }
+
+sub create_log_routine {
+    $Log::ger::_log_is_null = 1;
+    [sub {0}];
+}
 
 sub import {
-    Log::ger::add_hook(
-        'create_log_routine',
-        50,
-        sub {
-            $Log::ger::_log_is_null = 1;
-            [$code_null];
-        },
-    );
+    Log::ger::add_plugin('create_log_routine', __PACKAGE__, 'replace');
 }
 
 1;

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More 0.98;
 
-use Log::ger ();
+use Log::ger::Util;
 
 package My::P1;
 use Log::ger;
@@ -16,7 +16,7 @@ package main;
 subtest "basics" => sub {
     subtest "import" => sub {
         my $str = "";
-        Log::ger::reset_hooks('create_log_routine');
+        Log::ger::Util::reset_plugins('create_log_routine');
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
 
@@ -26,7 +26,7 @@ subtest "basics" => sub {
 
         {
             $str = "";
-            Log::ger::set_level(5);
+            Log::ger::Util::set_level(5);
             My::P1::log_warn("warn");
             My::P1::log_debug("debug");
             is($str, "warn\ndebug\n");
@@ -35,8 +35,8 @@ subtest "basics" => sub {
 
     subtest "setup_package" => sub {
         my $str = "";
-        Log::ger::reset_hooks('create_log_routine');
-        Log::ger::set_level(3);
+        Log::ger::Util::reset_plugins('create_log_routine');
+        Log::ger::Util::set_level(3);
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
         Log::ger::setup_package('My::P2');
@@ -47,10 +47,10 @@ subtest "basics" => sub {
 
     subtest "setup_hash" => sub {
         my $str = "";
-        Log::ger::reset_hooks('create_log_routine');
+        Log::ger::Util::reset_plugins('create_log_routine');
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
-        Log::ger::set_level(3);
+        Log::ger::Util::set_level(3);
         my $h = Log::ger::setup_hash();
 
         is(ref $h, 'HASH');
@@ -65,10 +65,10 @@ subtest "basics" => sub {
 
     subtest "setup_object" => sub {
         my $str = "";
-        Log::ger::reset_hooks('create_log_routine');
+        Log::ger::Util::reset_plugins('create_log_routine');
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
-        Log::ger::set_level(3);
+        Log::ger::Util::set_level(3);
         my $o = Log::ger::setup_object();
 
         $o->log_fatal("fatal");
@@ -81,7 +81,7 @@ subtest "basics" => sub {
 
         subtest "level=off (0)" => sub {
             $str = "";
-            Log::ger::set_level(0);
+            Log::ger::Util::set_level(0);
             $o = Log::ger::setup_object();
             $o->log_fatal("fatal");
             $o->log_error("error");
@@ -93,7 +93,7 @@ subtest "basics" => sub {
         };
         subtest "level=fatal (1)" => sub {
             $str = "";
-            Log::ger::set_level(1);
+            Log::ger::Util::set_level(1);
             $o = Log::ger::setup_object();
             $o->log_fatal("fatal");
             $o->log_error("error");
@@ -105,7 +105,7 @@ subtest "basics" => sub {
         };
         subtest "level=error (2)" => sub {
             $str = "";
-            Log::ger::set_level(2);
+            Log::ger::Util::set_level(2);
             $o = Log::ger::setup_object();
             $o->log_fatal("fatal");
             $o->log_error("error");
@@ -117,7 +117,7 @@ subtest "basics" => sub {
         };
         subtest "level=info (4)" => sub {
             $str = "";
-            Log::ger::set_level(4);
+            Log::ger::Util::set_level(4);
             $o = Log::ger::setup_object();
             $o->log_fatal("fatal");
             $o->log_error("error");
@@ -129,7 +129,7 @@ subtest "basics" => sub {
         };
         subtest "level=debug (5)" => sub {
             $str = "";
-            Log::ger::set_level(5);
+            Log::ger::Util::set_level(5);
             $o = Log::ger::setup_object();
             $o->log_fatal("fatal");
             $o->log_error("error");
@@ -141,7 +141,7 @@ subtest "basics" => sub {
         };
         subtest "level=trace (6)" => sub {
             $str = "";
-            Log::ger::set_level(6);
+            Log::ger::Util::set_level(6);
             $o = Log::ger::setup_object();
             $o->log_fatal("fatal");
             $o->log_error("error");

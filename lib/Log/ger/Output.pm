@@ -6,8 +6,8 @@ use warnings;
 sub set {
     my $pkg = shift;
 
-    require Log::ger;
-    Log::ger::set_output(@_);
+    require Log::ger::Util;
+    Log::ger::Util::set_output(@_);
 }
 
 sub import {
@@ -33,3 +33,8 @@ or:
      use_color => 1,
      ...
  );
+
+
+=head1 SEE ALSO
+
+Modelled after L<Log::Any::Adapter>.

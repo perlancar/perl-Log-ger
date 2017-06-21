@@ -6,7 +6,7 @@ package Log::ger::Output::Screen;
 use strict;
 use warnings;
 
-use Log::ger ();
+use Log::ger::Util;
 
 my %colors = (
     1 => "\e[31m"  , # fatal, red
@@ -18,7 +18,7 @@ my %colors = (
 );
 
 sub import {
-    my ($self, %import_args) = @_;
+    my ($package, %import_args) = @_;
 
     my $stderr = $import_args{stderr};
     $stderr = 1 unless defined $stderr;
@@ -28,9 +28,7 @@ sub import {
     $use_color = (-t STDOUT) unless defined $use_color;
     my $formatter = $import_args{formatter};
 
-    my $dumper;
-
-    my $hook = sub {
+    my $plugin = sub {
         my %args = @_;
         my $level = $args{level};
         my $code = sub {
@@ -48,7 +46,8 @@ sub import {
         [$code];
     };
 
-    Log::ger::add_hook('create_log_routine', 50, $hook);
+    Log::ger::Util::add_plugin(
+        'create_log_routine', [50, $plugin, __PACKAGE__], 'replace');
 }
 
 1;
@@ -98,4 +97,4 @@ Allow customizing colors.
 
 =head1 SEE ALSO
 
-L<Log::Any::Adapter::Screen>
+Modelled after L<Log::Any::Adapter::Screen>.

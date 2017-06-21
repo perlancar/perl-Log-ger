@@ -3,12 +3,12 @@ package Log::ger::Output::String;
 # DATE
 # VERSION
 
-use Log::ger ();
+use Log::ger::Util;
 
 sub import {
     my ($package, %import_args) = @_;
 
-    my $hook = sub {
+    my $plugin = sub {
         my %args = @_;
         my $level = $args{level};
         my $code = sub {
@@ -22,7 +22,8 @@ sub import {
         [$code];
     };
 
-    Log::ger::add_hook('create_log_routine', 50, $hook);
+    Log::ger::Util::add_plugin(
+        'create_log_routine', [50, $plugin, __PACKAGE__], 'replace');
 }
 
 1;
@@ -30,9 +31,9 @@ sub import {
 
 =head1 SYNOPSIS
 
- use Log::ger;
  use var '$str';
  use Log::ger::Output 'String' => ( string => \$str );
+ use Log::ger;
 
  log_warn "blah ...";
  log_error "blah ...";

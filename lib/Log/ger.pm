@@ -18,217 +18,163 @@ our %Levels = (
 );
 
 our %Level_Aliases = (
+    off => 0,
     warning => 3,
 );
 
 # keep track of our importers (= log producers) to be able to re-export log
 # routines to them when we change output, etc.
-our %Import_Args;
+our %Setup_Args;
 
 our $Current_Level = 3;
 
-my $dumper;
-sub _dump {
-    unless ($dumper) {
-        eval { require Data::Dmp };
-        if ($@) {
-            require Data::Dumper;
-            $dumper = sub {
-                local $Data::Dumper::Terse = 1;
-                local $Data::Dumper::Indent = 0;
-                local $Data::Dumper::Useqq = 1;
-                local $Data::Dumper::Deparse = 1;
-                local $Data::Dumper::Quotekeys = 0;
-                local $Data::Dumper::Sortkeys = 1;
-                local $Data::Dumper::Trailingcomma = 1;
-                Data::Dumper::Dumper($_[0]);
-            };
-        } else {
-            $dumper = sub { Data::Dmp::dmp($_[0]) };
-        }
-    }
-    $dumper->($_[0]);
-}
-
+# a flag that can be used by null output to skip using formatter
 our $_log_is_null;
 
-my %default_hooks = (
-    before_create_routine => [],
+our $_dumper;
 
+# key = phase, value = package, or [prio, coderef, key] (for plugins that have
+# arguments and wants to remember that arguments on re-setup)
+our %Default_Plugins = (
     create_filter_routine => [],
-
-    create_formatter_routine => [
-        # default: sprintf-style
-        [90, sub {
-             my %args = @_;
-             my $code = sub {
-                 return $_[0] if @_ < 2;
-                 my $fmt = shift;
-                 my @args;
-                 for (@_) {
-                     if (!defined($_)) {
-                         push @args, '<undef>';
-                     } elsif (ref $_) {
-                         push @args, _dump($_);
-                     } else {
-                         push @args, $_;
-                     }
-                 }
-                 sprintf $fmt, @args;
-             };
-             [$code];
-         }, __PACKAGE__],
-    ],
-
-    create_log_routine => [
-        # default: null
-        [90, sub {
-             $Log::ger::_log_is_null = 1;
-             [sub {0}];
-         }, __PACKAGE__ . " (null default output)"],
-
-        # create a null subroutine for higher-levels
-        [10, sub {
-             my %args = @_;
-             my $level = $args{level};
-             if ($Current_Level >= $level) {
-                 return [undef];
-             } else {
-                 $Log::ger::_log_is_null = 1;
-                 return [sub {0}];
-             }
-         }, __PACKAGE__ . " (null higher level)"],
-    ],
-
-    create_log_is_routine => [
-        # default: compare with $Current_Level
-        [90, sub {
-             my %args = @_;
-             my $level = $args{level};
-             my $code = sub {
-                 $Current_Level >= $level;
-             };
-             [$code];
-         }, __PACKAGE__],
-    ],
-
-    after_create_routine => [],
-
-    after_install_routine => [],
+    create_formatter_routine => [qw/Log::ger/],
+    create_log_routine => [qw/Log::ger/],
+    after_create_log_routine => [],
+    create_log_is_routine => [qw/Log::ger/],
+    after_install_log_routine => [],
 );
 
-my %hooks;
+our %Plugins;
 {
-    for my $phase (keys %default_hooks) {
-        $hooks{$phase} = [@{ $default_hooks{$phase} }];
+    for my $phase (keys %Default_Plugins) {
+        $Plugins{$phase} = [@{ $Default_Plugins{$phase} }];
     }
 }
 
-sub _action_on_hooks {
-    my $action = shift;
+# plugins that are specific to each importer. this is appropriate for e.g.
+# plugin that creates incompatible interface e.g. Log::ger::Format::Code so it
+# affects only packages that import it.
+our %Importer_Plugins; # key = package name, value = { phase => plugins, ... }
 
-    my $phase = shift;
-    my $hooks = $hooks{$phase} or die "Unknown phase '$phase'";
+sub PRIO_create_log_routine { 10 }
 
-    if ($action eq 'add') {
-        my ($prio, $hook, $key) = @_;
-        $key ||= caller(1);
-        return 0 if grep { $_->[2] eq $key } @$hooks;
-        unshift @$hooks, [$prio, $hook, $key];
-    } elsif ($action eq 'reset') {
-        my $saved = $hooks{$phase};
-        $hooks{$phase} = [@{ $default_hooks{$phase} }];
-        return $saved;
-    } elsif ($action eq 'empty') {
-        my $saved = $hooks{$phase};
-        $hooks{$phase} = [];
-        return $saved;
-    } elsif ($action eq 'save') {
-        return [@{ $hooks{$phase} }];
-    } elsif ($action eq 'restore') {
-        my $saved = shift;
-        $hooks{$phase} = [@$saved];
-        return $saved;
+# the default behavior is to create a null routine for levels that are too high.
+# since we run at high priority (10), this block typical output plugins at
+# normal priority (50).
+sub create_log_routine {
+    my ($self, %args) = @_;
+    my $level = $args{level};
+    if ($Current_Level < $level ||
+            @{ $Plugins{create_log_routine} } == 1 # there's only us
+        ) {
+        $_log_is_null = 1;
+        return [sub {0}];
     }
+    [undef]; # decline
 }
 
-sub add_hook {
-    my ($phase, $prio, $hook, $key) = @_;
-    _action_on_hooks('add', $phase, $prio, $hook, $key);
+sub PRIO_create_log_is_routine { 90 }
+
+# the default behavior is to compare to global level. normally this behavior
+# suffices.
+sub create_log_is_routine {
+    my ($self, %args) = @_;
+    my $level = $args{level};
+    [sub { $Current_Level >= $level }];
 }
 
-sub reset_hooks {
-    my ($phase) = @_;
-    _action_on_hooks('reset', $phase);
+sub PRIO_create_formatter_routine { 90 }
+
+# the default formatter is sprintf-style that dumps data structures arguments as
+# well as undef as '<undef>'.
+sub create_formatter_routine {
+    my ($self, %args) = @_;
+
+    my $code = sub {
+        return $_[0] if @_ < 2;
+        my $fmt = shift;
+        my @args;
+        for (@_) {
+            if (!defined($_)) {
+                push @args, '<undef>';
+            } elsif (ref $_) {
+                if (!$_dumper) {
+                    require Log::ger::Util;
+                }
+                push @args, Log::ger::Util::_dump($_);
+            } else {
+                push @args, $_;
+            }
+        }
+        sprintf $fmt, @args;
+    };
+    [$code];
 }
 
-sub empty_hooks {
-    my ($phase) = @_;
-    _action_on_hooks('empty', $phase);
-}
+sub run_plugins {
+    my ($phase, $plugin_args, $stop_after_first_result, $package) = @_;
+    #print "D: running plugins for $phase\n";
 
-sub save_hooks {
-    my ($phase) = @_;
-    _action_on_hooks('save', $phase);
-}
+    my $plugins = $Plugins{$phase} or die "Unknown phase '$phase'";
 
-sub restore_hooks {
-    my ($phase, $saved) = @_;
-    _action_on_hooks('restore', $phase, $saved);
-}
-
-sub run_hooks {
-    my ($phase, $hook_args, $stop_after_first_result) = @_;
-
-    #use DD; print "D: run_hooks, hook_args=", DD::dump($hook_args), "\n";
-    my $hooks = $hooks{$phase} or die "Unknown phase '$phase'";
+    if ($package) {
+        # add importer-specific plugins
+        $plugins = [@{ $Importer_Plugins{$package}{$phase} || [] },
+                    @$plugins];
+    }
 
     my $res;
-    for my $hrec (sort {$a->[0] <=> $b->[0]} @$hooks) {
-        my $hook = $hrec->[1];
-        my ($res0, $flow_control) = @{ $hook->(%$hook_args) };
+    my $meth = "PRIO_$phase";
+    for my $plugin (sort {
+        my $prio_a = ref $a eq 'ARRAY' ? $a->[0] : $a->$meth;
+        my $prio_b = ref $b eq 'ARRAY' ? $b->[0] : $b->$meth;
+        $prio_a <=> $prio_b
+    } @$plugins)  {
+        my ($res0, $flow_control) = @{
+            ref $plugin eq 'ARRAY' ? $plugin->[1]->(%$plugin_args) :
+                $plugin->$phase(%$plugin_args)
+            };
         if (defined $res0) {
             $res = $res0;
-            #print "D:   got result from $hrec->[2]\n";
+            #print "D:   got result from $plugin\n";
             last if $stop_after_first_result;
         }
         last if $flow_control;
     }
-    $res;
+    return $res;
 }
 
 sub _setup {
-    my ($target, $target_arg, $caller, $setup_args) = @_;
+    my ($target, $target_arg, $setup_args) = @_;
 
-    my $code_filter =
-        run_hooks('create_filter_routine', {
-            setup_args => $setup_args,
-            caller     => $caller,
-        }, 1);
+    my %plugin_args = (
+        target     => $target,
+        target_arg => $target_arg,
+        setup_args => $setup_args,
+    );
+
+    my $package;
+    if ($target eq 'package') {
+        $package = $target_arg;
+    }
+
+    my $code_filter = run_plugins(
+        'create_filter_routine', \%plugin_args, 1, $package);
 
     my $code_formatter =
-        run_hooks('create_formatter_routine', {
-            setup_args => $setup_args,
-            caller     => $caller,
-        }, 1);
-    die "No hooks created formatter routine" unless $code_formatter;
+        run_plugins('create_formatter_routine', \%plugin_args, 1, $package);
+    die "No plugin created formatter routine" unless $code_formatter;
 
-    for my $lname (keys %Levels) {
+    for my $lname (sort { $Levels{$a} <=> $Levels{$b} } keys %Levels) {
         my $lnum = $Levels{$lname};
 
-        my %hook_args = (
-            setup_args => $setup_args,
-            caller     => $caller,
-            level      => $lnum,
-            str_level  => $lname,
-        );
-
-        run_hooks('before_create_routine', \%hook_args, 0);
+        local $plugin_args{level} = $lnum;
+        local $plugin_args{str_level} = $lname;
 
         $_log_is_null = 0;
         my $code0_log =
-            run_hooks('create_log_routine', \%hook_args, 1);
-        die "No hooks created log routine 'log_$lname'" unless $code0_log;
+            run_plugins('create_log_routine', \%plugin_args, 1, $package);
+        die "No plugin created log routine 'log_$lname'" unless $code0_log;
         my $code_log;
         if ($_log_is_null) {
             # we don't need to format null logger
@@ -246,16 +192,21 @@ sub _setup {
             };
         }
 
-        my $code_log_is =
-            run_hooks('create_log_is_routine', \%hook_args, 1);
-        die "No hooks created log routine 'log_is_$lname'" unless $code_log_is;
+        {
+            local $plugin_args{log_routine} = $code_log;
+            run_plugins('after_create_log_routine', \%plugin_args, 1, $package);
+        }
 
-        run_hooks('after_create_routine', \%hook_args, 0);
+        my $code_log_is =
+            run_plugins('create_log_is_routine', \%plugin_args, 1, $package);
+        die "No plugin created log routine 'log_is_$lname'" unless $code_log_is;
 
         # install
         if ($target eq 'package') {
+#IFUNBUILT
             no strict 'refs';
             no warnings 'redefine';
+#END IFUNBUILT
 
             *{"$target_arg\::log_$lname"}    = $code_log;
             *{"$target_arg\::log_is_$lname"} = $code_log_is;
@@ -263,67 +214,38 @@ sub _setup {
             $target_arg->{"log_$lname"}    = $code_log;
             $target_arg->{"log_is_$lname"} = $code_log_is;
         } elsif ($target eq 'object') {
+#IFUNBUILT
             no strict 'refs';
             no warnings 'redefine';
+#END IFUNBUILT
 
             *{"$target_arg\::log_$lname"}    = sub { shift; $code_log->(@_) };
             *{"$target_arg\::log_is_$lname"} = $code_log_is;
         }
 
-        run_hooks('after_install_routine', \%hook_args, 0);
+        run_plugins('after_install_log_routine', \%plugin_args, $package);
     } # for level
 }
 
 sub setup_package {
     my $package = shift;
     my $args = shift;
-    _setup('package', $package, $package, $args);
+    _setup('package', $package, $args);
 }
 
 sub setup_hash {
-    my $caller = shift || caller(0);
     my $hash = {};
     my $args = shift;
-    _setup('hash', $hash, $caller, $args);
+    _setup('hash', $hash, $args);
     $hash;
 }
 
 sub setup_object {
-    my $caller = shift || caller(0);
-    # create a random package, XXX check if already exists?
-    my $pkg = "Log::ger::Object::O".int(100_000_000 + rand()*900_000_000);
+    my $obj = []; my ($obj_addr) = "$obj" =~ /0x(\w+)/;
+    my $pkg = "Log::ger::Stash::A$obj_addr";
     my $args = shift;
-    _setup('object', $pkg, $caller, $args);
+    _setup('object', $pkg, $args);
     bless [], $pkg;
-}
-
-sub resetup_importers {
-    for my $pkg (keys %Import_Args) {
-        setup_package($pkg, $Import_Args{$pkg});
-    }
-}
-
-sub set_output {
-    my ($mod, %args) = @_;
-    die "Invalid output module syntax" unless $mod =~ /\A\w+(::\w+)*\z/;
-    $mod = "Log::ger::Output::$mod" unless $mod =~ /\ALog::ger::Output::/;
-    (my $mod_pm = "$mod.pm") =~ s!::!/!g;
-    require $mod_pm;
-    $mod->import(%args);
-    resetup_importers();
-}
-
-sub numeric_level {
-    my $level = shift;
-    return $level if $level =~ /\A\d+\z/;
-    return $Levels{$level} if defined $Levels{$level};
-    return $Level_Aliases{$level} if defined $Level_Aliases{$level};
-    die "Unknown level '$level'";
-}
-
-sub set_level {
-    $Log::ger::Current_Level = numeric_level(shift);
-    resetup_importers();
 }
 
 sub import {
@@ -332,7 +254,7 @@ sub import {
     my $caller = caller(0);
     $args{category} = $caller if !defined($args{category});
     $args{category} = join(".", split /::|\./, lc $args{category}); # normalize
-    $Import_Args{$caller} = \%args;
+    $Setup_Args{$caller} = \%args;
     setup_package($caller, \%args);
 }
 
@@ -396,69 +318,80 @@ See L<Log::ger::LogAny> to interop with L<Log::Any>.
 =back
 
 
-=head1 INTERNALS
+=head1 FAQ
 
-=head2 Hooks
+=head2 How do I create multiple loggers?
 
-Hooks are how Log::ger provides its flexibility. A hook is passed a hash
-argument and is expected to return an array:
+For example, in L<Log::Any>:
 
- [$result, $flow_control]
-
-Some phases will stop after the first hook that returns non-undef C<$result>.
-C<$flow_control> can be set to 1 to stop immediately after this hook.
-
-Aguments received by hook: C<caller>, C<level> (numeric level), C<str_level>.
-
-=over
-
-=item * before_create_routine phase
-
-=item * create_log_routine phase
-
-Used to create "log_I<level>" routines.
-
-Expected return:
-
- [$err*, $code]
-
-Hook that wants to decline can return undef in C<$code>. Log::ger will stop
-after the first hook that produces a non-undef code.
-
-=head2 create_log_is_routine phase
-
-Used to create "log_I<level>" routines.
-
-=head2 after_create_routine phase
-
-=head2 Plans
-
-=over
-
-=item * Multiple loggers
-
-To support logging to two+ different loggers in the same producer package, a la
-in L<Log::Any>:
+ my $log = Log::Any->get_logger;
+ my $log_dump = Log::Any->get_logger(category => "dump"); # to dump contents
 
  $log->debugf("Headers is: %s", $http_res->{headers});
  $log_dump->debug($http_res->{content});
 
-we can do something like (XXX find a more appropriate name):
+in Log::ger:
 
- my $log      = Log::ger::install_to_object(...); # instead of installing to package
- my $log_dump = Log::ger::install_to_object(...); # or perhaps install to hash?
- $log->log_debug(...);
- $log_dump->log_debug(...);
+ # instead of installing to package, we setup objects/hashes for the secondary
+ # loggers
+ my $log_dump = Log::ger::setup_object(category => "dump");
+ # or, for hash: my $log_dump = Log::ger::setup_hash(category => "dump");
 
-=item * Custom formatting
+ log_debug("Headers is: %s", $http_res->{headers});
+ $log_dump->log_debug($http_res->{content});
+ # or, for hash: $log_dump->{log_debug}->($http_res->{content});
+
+=head2 How do I do custom formatting
 
 For example, a la L<Log::Contextual>:
 
  log_warn { 'The number of stuffs is: ' . $obj->stuffs_count };
 
-can be implemented by a hook in Create_Log_Routine that wraps routine from the
-other hook and perform the conversion from custom formatting to sprintf-style
-(or a single string).
+See L<Log::ger::Format::Code>.
+
+But note that this creates incompatible interface.
+
+=back
+
+
+=head1 INTERNALS
+
+=head2 Plugins
+
+Plugins are how Log::ger provides its flexibility. Plugins are run at various
+phases. Plugin routine is passed a hash argument and is expected to return an
+array:
+
+ [$result, $flow_control]
+
+Some phases will stop after the first plugin that returns non-undef C<$result>.
+C<$flow_control> can be set to 1 to stop immediately after this hook.
+
+Aguments received by plugin: C<target> (str, can be C<package> if installing to
+a package, or C<hash> or C<object>), C<target_arg> (str, when C<target> is
+C<package>, will be the package name; when C<target> is C<hash> will be the
+hash; when C<target> is C<object> will be the object's package), C<setup_args>
+(hash, arguments passed to Log::ger when importing). These arguments are
+received by plugins for C<create_log_routine> and C<create_log_is_routine> which
+are run for every level: C<level> (numeric level), C<str_level>.
+
+Available phases:
+
+=over
+
+=item * create_filter_routine
+
+=item * create_formatter_routine
+
+=item * create_log_routine phase
+
+Used to create "log_I<level>" routines. Run for each level.
+
+=item * create_log_is_routine phase
+
+Used to create "log_I<level>" routines. Run for each level.
+
+=item * after_install_log_routine phase
 
 =back
 

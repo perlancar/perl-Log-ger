@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More 0.98;
 
-use Log::ger ();
+use Log::ger::Util;
 
 package My::P1;
 use Log::ger;
@@ -13,7 +13,7 @@ package main;
 
 my $str1 = "";
 my $str2 = "";
-Log::ger::reset_hooks('create_log_routine');
+Log::ger::Util::reset_plugins('create_log_routine');
 require Log::ger::Output;
 Log::ger::Output->set('Composite', outputs=>{String=>[ {args=>{string=>\$str1}}, {args=>{string=>\$str2}} ]});
 My::P1::log_warn("warn");
