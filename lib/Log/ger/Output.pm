@@ -1,5 +1,8 @@
 package Log::ger::Output;
 
+# DATE
+# VERSION
+
 use strict;
 use warnings;
 
