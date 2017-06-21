@@ -253,7 +253,6 @@ sub import {
 
     my $caller = caller(0);
     $args{category} = $caller if !defined($args{category});
-    $args{category} = join(".", split /::|\./, lc $args{category}); # normalize
     $Setup_Args{$caller} = \%args;
     setup_package($caller, \%args);
 }
