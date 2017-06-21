@@ -8,6 +8,9 @@ use Log::ger::Util;
 sub import {
     my ($package, %import_args) = @_;
 
+    my $append_newline = $import_args{append_newline};
+    $append_newline = 1 unless defined $append_newline;
+
     my $plugin = sub {
         my %args = @_;
         my $level = $args{level};
@@ -17,7 +20,8 @@ sub import {
                 $msg = $formatter->($msg);
             }
             ${ $import_args{string} } .= $msg;
-            ${ $import_args{string} } .= "\n" unless $msg =~ /\R\z/;
+            ${ $import_args{string} } .= "\n"
+                unless !$append_newline || $msg =~ /\R\z/;
         };
         [$code];
     };
@@ -32,7 +36,10 @@ sub import {
 =head1 SYNOPSIS
 
  use var '$str';
- use Log::ger::Output 'String' => ( string => \$str );
+ use Log::ger::Output 'String' => (
+     string => \$str,
+     # append_newline => 0, # default is true, to mimic Log::ger::Output::Screen
+ );
  use Log::ger;
 
  log_warn "blah ...";
