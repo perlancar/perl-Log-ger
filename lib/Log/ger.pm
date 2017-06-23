@@ -116,7 +116,7 @@ our %Default_Hooks = (
 
     after_create_is_routine => [],
 
-    #before_install_routines => [],
+    before_install_routines => [],
 
     after_install_routines => [],
 );
@@ -280,11 +280,11 @@ sub init_target {
         }
     }
 
-    #{
-    #    local $hook_args{routines} = \@routines;
-    #    run_hooks('before_install_routines', \%hook_args, 0,
-    #              $target, $target_arg);
-    #}
+    {
+        local $hook_args{routines} = \@routines;
+        run_hooks('before_install_routines', \%hook_args, 0,
+                  $target, $target_arg);
+    }
 
     # install
     if ($target eq 'package') {
@@ -294,9 +294,6 @@ sub init_target {
 #END IFUNBUILT
         for my $r (@routines) {
             my ($code, $name) = @$r;
-            # delete first so when there's a plugin that changes the prototype,
-            # we don't get a warning when redefining.
-            delete ${"$target_arg\::"}{$name};
             *{"$target_arg\::$name"} = $code;
         }
     } elsif ($target eq 'object') {
@@ -307,8 +304,6 @@ sub init_target {
         my $pkg = ref $target_arg;
         for my $r (@routines) {
             my ($code, $name) = @$r;
-            # delete first so when there's a plugin that changes the prototype,
-            # we don't get a warning when redefining.
             *{"$pkg\::$name"} = $code;
         }
     } elsif ($target eq 'hash') {
@@ -340,7 +335,7 @@ sub get_logger {
     my $caller = caller(0);
     $args{category} = $caller if !defined($args{category});
     my $obj = {}; $obj =~ /\(0x(\w+)/;
-    my $pkg = "Log::err::Obj$1"; bless $obj, $pkg;
+    my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
     add_target(object => $obj, \%args);
     init_target(object => $caller, \%args);
     $obj; # XXX add DESTROY to remove from list of targets
