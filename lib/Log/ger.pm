@@ -116,6 +116,8 @@ our %Default_Hooks = (
 
     after_create_is_routine => [],
 
+    #before_install_routines => [],
+
     after_install_routines => [],
 );
 
@@ -164,14 +166,19 @@ sub run_hooks {
 }
 
 sub add_target {
-    my ($target, $target_arg, $args) = @_;
+    my ($target, $target_arg, $args, $replace) = @_;
+    $replace = 1 unless defined $replace;
+
     if ($target eq 'package') {
+        unless ($replace) { return if $Package_Targets{$target_arg} }
         $Package_Targets{$target_arg} = $args;
     } elsif ($target eq 'object') {
         my ($addr) = "$target_arg" =~ /\(0x(\w+)/;
+        unless ($replace) { return if $Object_Targets{$addr} }
         $Object_Targets{$addr} = [$target_arg, $args];
     } elsif ($target eq 'hash') {
         my ($addr) = "$target_arg" =~ /\(0x(\w+)/;
+        unless ($replace) { return if $Hash_Targets{$addr} }
         $Hash_Targets{$addr} = [$target_arg, $args];
     }
 }
@@ -252,7 +259,7 @@ sub init_target {
                     };
                 }
             }
-            push @routines, [$code_log, $rname, ($object ? 2:0) | 1];
+            push @routines, [$code_log, $rname, $lnum, ($object ? 2:0) | 1];
         }
     }
     {
@@ -269,9 +276,15 @@ sub init_target {
                 run_hooks('create_is_routine', \%hook_args, 1,
                           $target, $target_arg);
             next unless $code_is;
-            push @routines, [$code_is, $rname, ($object ? 2:0) | 0];
+            push @routines, [$code_is, $rname, $lnum, ($object ? 2:0) | 0];
         }
     }
+
+    #{
+    #    local $hook_args{routines} = \@routines;
+    #    run_hooks('before_install_routines', \%hook_args, 0,
+    #              $target, $target_arg);
+    #}
 
     # install
     if ($target eq 'package') {
@@ -281,6 +294,9 @@ sub init_target {
 #END IFUNBUILT
         for my $r (@routines) {
             my ($code, $name) = @$r;
+            # delete first so when there's a plugin that changes the prototype,
+            # we don't get a warning when redefining.
+            delete ${"$target_arg\::"}{$name};
             *{"$target_arg\::$name"} = $code;
         }
     } elsif ($target eq 'object') {
@@ -291,6 +307,8 @@ sub init_target {
         my $pkg = ref $target_arg;
         for my $r (@routines) {
             my ($code, $name) = @$r;
+            # delete first so when there's a plugin that changes the prototype,
+            # we don't get a warning when redefining.
             *{"$pkg\::$name"} = $code;
         }
     } elsif ($target eq 'hash') {
@@ -314,6 +332,18 @@ sub import {
     $args{category} = $caller if !defined($args{category});
     add_target(package => $caller, \%args);
     init_target(package => $caller, \%args);
+}
+
+sub get_logger {
+    my ($package, %args) = @_;
+
+    my $caller = caller(0);
+    $args{category} = $caller if !defined($args{category});
+    my $obj = {}; $obj =~ /\(0x(\w+)/;
+    my $pkg = "Log::err::Obj$1"; bless $obj, $pkg;
+    add_target(object => $obj, \%args);
+    init_target(object => $caller, \%args);
+    $obj; # XXX add DESTROY to remove from list of targets
 }
 
 1;

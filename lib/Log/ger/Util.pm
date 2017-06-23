@@ -54,11 +54,13 @@ sub _action_on_hooks {
 
     my $hooks = $Log::ger::Global_Hooks{$phase} or die "Unknown phase '$phase'";
     if ($target eq 'package') {
-        # XXX
+        $hooks = ($Log::ger::Per_Package_Hooks{$target_arg}{$phase} ||= []);
     } elsif ($target eq 'object') {
-        # XXX
+        my ($addr) = $target_arg =~ /\(0x(\w+)/;
+        $hooks = ($Log::ger::Per_Object_Hooks{$addr}{$phase} ||= []);
     } elsif ($target eq 'hash') {
-        # XXX
+        my ($addr) = $target_arg =~ /\(0x(\w+)/;
+        $hooks = ($Log::ger::Per_Hash_Hooks{$addr}{$phase} ||= []);
     }
 
     if ($action eq 'add') {
@@ -169,10 +171,13 @@ sub set_plugin {
 }
 
 sub reinit_target {
-    my ($target, $target_arg);
+    my ($target, $target_arg) = @_;
+
+    # adds target if not already exists
+    Log::ger::add_target($target, $target_arg, {}, 0);
+
     if ($target eq 'package') {
-        my $init_args = $Log::ger::Package_Targets{$target_arg}
-            or die "Unknown package target '$target_arg'";
+        my $init_args = $Log::ger::Package_Targets{$target_arg};
         Log::ger::init_target(package => $target_arg, $init_args);
     } elsif ($target eq 'object') {
         my $v = $Log::ger::Object_Targets{$target_arg}

@@ -154,4 +154,5 @@ subtest "basics" => sub {
 };
 
 DONE_TESTING:
-done_testing;
+done_testing
+    ;
