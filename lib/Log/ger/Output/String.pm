@@ -38,6 +38,8 @@ sub get_hooks {
 1;
 # ABSTRACT: Set output to a string
 
+=for Pod::Coverage ^(.+)$
+
 =head1 SYNOPSIS
 
  use var '$str';

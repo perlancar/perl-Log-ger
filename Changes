@@ -1,4 +1,4 @@
-0.005   2017-06-22 (PERLANCAR)
+0.005   2017-06-23 (PERLANCAR)
 
         - [Incompatible change] Another round of internal refactoring and
           interface changes. New: Log::ger::{Plugin,Format,Filter}. Every plugin
@@ -7,6 +7,7 @@
           phase. Remove 'after_create_log_routine',
           'after_create_log_is_routine'. Move FAQ & internals doc to
           Log-ger-Manual dist.
+
 
 0.004   2017-06-21 (PERLANCAR)
 
