@@ -186,6 +186,7 @@ sub add_target {
 sub init_target {
     my ($target, $target_arg, $init_args) = @_;
 
+    #print "D:init_target($target, $target_arg, ...)\n";
     my %hook_args = (
         target     => $target,
         target_arg => $target_arg,
@@ -334,10 +335,10 @@ sub get_logger {
 
     my $caller = caller(0);
     $args{category} = $caller if !defined($args{category});
-    my $obj = {}; $obj =~ /\(0x(\w+)/;
+    my $obj = []; $obj =~ /\(0x(\w+)/;
     my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
     add_target(object => $obj, \%args);
-    init_target(object => $caller, \%args);
+    init_target(object => $obj, \%args);
     $obj; # XXX add DESTROY to remove from list of targets
 }
 
