@@ -3,31 +3,36 @@ package Log::ger::Output::String;
 # DATE
 # VERSION
 
-use Log::ger::Util;
+use strict;
+use warnings;
 
-sub import {
-    my ($package, %import_args) = @_;
+sub get_hooks {
+    my %conf = @_;
 
-    my $append_newline = $import_args{append_newline};
+    $conf{string} or die "Please specify string";
+
+    my $formatter = $conf{formatter};
+    my $append_newline = $conf{append_newline};
     $append_newline = 1 unless defined $append_newline;
 
-    my $plugin = sub {
-        my %args = @_;
-        my $level = $args{level};
-        my $code = sub {
-            my $msg = $_[1];
-            if ($formatter) {
-                $msg = $formatter->($msg);
-            }
-            ${ $import_args{string} } .= $msg;
-            ${ $import_args{string} } .= "\n"
-                unless !$append_newline || $msg =~ /\R\z/;
-        };
-        [$code];
+    return {
+        create_log_routine => [
+            __PACKAGE__, 50,
+            sub {
+                my %args = @_;
+                my $level = $args{level};
+                my $logger = sub {
+                    my $msg = $_[1];
+                    if ($formatter) {
+                        $msg = $formatter->($msg);
+                    }
+                    ${ $conf{string} } .= $msg;
+                    ${ $conf{string} } .= "\n"
+                        unless !$append_newline || $msg =~ /\R\z/;
+                };
+                [$logger];
+            }],
     };
-
-    Log::ger::Util::add_plugin(
-        'create_log_routine', [50, $plugin, __PACKAGE__], 'replace');
 }
 
 1;
@@ -42,10 +47,10 @@ sub import {
  );
  use Log::ger;
 
- log_warn "blah ...";
- log_error "blah ...";
+ log_warn "warn ...";
+ log_error "debug ...";
 
-C<$str> will contain "blah ...\nblah ...\n".
+C<$str> will contain "warn ...\n".
 
 
 =head1 DESCRIPTION
@@ -56,3 +61,11 @@ For testing only.
 =head1 CONFIGURATION
 
 =head2 string => scalarref
+
+Required.
+
+=head2 formatter => coderef
+
+Optional.
+
+=head2 append_newline => bool (default: 1)

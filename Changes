@@ -1,3 +1,13 @@
+0.005   2017-06-22 (PERLANCAR)
+
+        - [Incompatible change] Another round of internal refactoring and
+          interface changes. New: Log::ger::{Plugin,Format,Filter}. Every plugin
+          (including filter, format, output) can be set on a per-target basis or
+          globally. The term 'hooks' is in again. Add 'create_routine_names'
+          phase. Remove 'after_create_log_routine',
+          'after_create_log_is_routine'. Move FAQ & internals doc to
+          Log-ger-Manual dist.
+
 0.004   2017-06-21 (PERLANCAR)
 
 	- [Bugfix] Log::ger::Output didn't have VERSION.
@@ -19,7 +29,8 @@
 
 0.002    2017-06-21 (PERLANCAR)
 
-         - Reorganize internals & fix a couple of doc typos.
+         - [Incompatible change] Reorganize internals & fix a couple of doc
+           typos.
 
          - Add outputs: Null, String (mainly for testing).
 
