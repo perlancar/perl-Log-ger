@@ -1,3 +1,10 @@
+0.007   2017-06-25 (PERLANCAR)
+
+	- Add custom level test.
+
+	- Add output: Array.
+
+
 0.006   2017-06-24 (PERLANCAR)
 
 	- [Bugfix] Use the correct package when initializing object.
