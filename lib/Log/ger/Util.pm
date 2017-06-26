@@ -41,6 +41,18 @@ sub numeric_level {
     die "Unknown level '$level'";
 }
 
+sub string_level {
+    my $level = shift;
+    return $level if defined $Log::ger::Levels{$level};
+    $level = $Log::ger::Level_Aliases{$level}
+        if defined $Log::ger::Level_Aliases{$level};
+    for (keys %Log::ger::Levels) {
+        my $v = $Log::ger::Levels{$_};
+        return $_ if $v == $level;
+    }
+    die "Unknown level '$level'";
+}
+
 sub set_level {
     no warnings 'once';
     $Log::ger::Current_Level = numeric_level(shift);

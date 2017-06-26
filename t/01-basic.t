@@ -13,6 +13,19 @@ package My::P2;
 
 package main;
 
+subtest numeric_level => sub {
+    is(Log::ger::Util::numeric_level(1), 1);
+    is(Log::ger::Util::numeric_level("info"), 4);
+    # XXX check unknown level
+};
+
+subtest string_level => sub {
+    is(Log::ger::Util::string_level(1), "fatal");
+    is(Log::ger::Util::string_level("info"), "info");
+    is(Log::ger::Util::string_level("warning"), "warn");
+    # XXX check unknown level
+};
+
 subtest "basics" => sub {
     subtest "import" => sub {
         my $str = "";
