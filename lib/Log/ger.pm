@@ -38,9 +38,7 @@ our %Default_Hooks = (
     create_formatter => [
         [__PACKAGE__, 90,
          # the default formatter is sprintf-style that dumps data structures
-         # arguments as well as undef as '<undef>'. to format the formatted
-         # message, e.g. add timestamps or other prefix, use priority lower than
-         # 90 (e.g. 95) so the formatter wraps this formatter.
+         # arguments as well as undef as '<undef>'.
          sub {
              my %args = @_;
 
@@ -136,11 +134,8 @@ our %Per_Hash_Hooks; # key = hash address, value = { phase => hooks, ... }
 our %Object_Targets; # key = object address, value = [$obj, \%init_args]
 our %Per_Object_Hooks; # key = object address, value = { phase => hooks, ... }
 
-# if flow_control is 1, stops after the first hook that gives non-undef result.
-# flow_control can also be a coderef that will be called after each hook with
-# ($hook, $res) and can return 1 to mean stop.
 sub run_hooks {
-    my ($phase, $hook_args, $flow_control,
+    my ($phase, $hook_args, $stop_after_first_result,
         $target, $target_arg) = @_;
     #print "D: running hooks for phase $phase\n";
 
@@ -159,17 +154,13 @@ sub run_hooks {
 
     my $res;
     for my $hook (sort {$a->[1] <=> $b->[1]} @hooks)  {
-        my $hook_res = $hook->[2]->(%$hook_args);
-        if (defined $hook_res->[0]) {
-            $res = $hook_res->[0];
+        my ($res0, $flow_control) = @{ $hook->[2]->(%$hook_args) };
+        if (defined $res0) {
+            $res = $res0;
             #print "D:   got result from hook $hook\n";
-            if (ref $flow_control eq 'CODE') {
-                last if $flow_control->($hook, $hook_res);
-            } else {
-                last if $flow_control;
-            }
+            last if $stop_after_first_result;
         }
-        last if $hook_res->[1];
+        last if $flow_control;
     }
     return $res;
 }
@@ -210,11 +201,9 @@ sub init_target {
     my $code_filter = run_hooks(
         'create_filter', \%hook_args, 1, $target, $target_arg);
 
-    my @formatters;
-    run_hooks(
-        'create_formatter', \%hook_args,
-        sub { push @formatters, $_[1][0] if $_[1][0]; 0 },
-        $target, $target_arg);
+    my $code_formatter =
+        run_hooks('create_formatter', \%hook_args, 1, $target, $target_arg);
+    die "No hook created formatter routine" unless $code_formatter;
 
     my $routine_names0 =
         run_hooks('create_routine_names', \%hook_args, 1,
@@ -239,91 +228,38 @@ sub init_target {
                           $target, $target_arg);
             next unless $code0_log;
             my $code_log;
-          SET_CODE_LOG:
-            {
-                if ($_logger_is_null) {
-                    # we don't need to format null logger
-                    $code_log = $code0_log;
-                    last;
-                }
-
-                my $code_formatter;
-                if (@formatters > 1) {
-                    $code_formatter = sub {
-                        my $res = shift;
-                        for my $f (@formatters) {
-                            $res = $f->($res);
-                        }
-                        $res;
+            if ($_logger_is_null) {
+                # we don't need to format null logger
+                $code_log = $code0_log;
+            } elsif ($code_filter) {
+                if ($object) {
+                    $code_log = sub {
+                        return unless $code_filter->($lnum, $init_args);
+                        shift;
+                        my $msg = $code_formatter->(@_);
+                        $code0_log->($init_args, $msg);
                     };
-                } elsif (@formatters == 1) {
-                    $code_formatter = $formatters[0];
-                }
-
-                if ($code_filter) {
-                    if ($object) {
-                        if ($code_formatter) {
-                            $code_log = sub {
-                                return unless $code_filter->($lnum, $init_args);
-                                shift;
-                                my $msg = $code_formatter->(@_);
-                                $code0_log->($init_args, $msg);
-                            };
-                        } else {
-                            # no formatter
-                            $code_log = sub {
-                                return unless $code_filter->($lnum, $init_args);
-                                shift;
-                                $code0_log->($init_args, @_);
-                            };
-                        }
-                    } else {
-                        # not object
-                        if ($code_formatter) {
-                            $code_log = sub {
-                                return unless $code_filter->($lnum, $init_args);
-                                my $msg = $code_formatter->(@_);
-                                $code0_log->($init_args, $msg);
-                            };
-                        } else {
-                            $code_log = sub {
-                                return unless $code_filter->($lnum, $init_args);
-                                $code0_log->($init_args, @_);
-                            };
-                        }
-                    }
                 } else {
-                    # no filter
-                    if ($object) {
-                        if ($code_formatter) {
-                            $code_log = sub {
-                                shift;
-                                my $msg = $code_formatter->(@_);
-                                $code0_log->($init_args, $msg);
-                            };
-                        } else {
-                            # no formatter
-                            $code_log = sub {
-                                shift;
-                                $code0_log->($init_args, @_);
-                            };
-                        }
-                    } else {
-                        # not object
-                        if ($code_formatter) {
-                            $code_log = sub {
-                                my $msg = $code_formatter->(@_);
-                                $code0_log->($init_args, $msg);
-                            };
-                        } else {
-                            # no formatter
-                            $code_log = sub {
-                                $code0_log->($init_args, @_);
-                            };
-                        }
-                    }
+                    $code_log = sub {
+                        return unless $code_filter->($lnum, $init_args);
+                        my $msg = $code_formatter->(@_);
+                        $code0_log->($init_args, $msg);
+                    };
                 }
-            } # SET_CODE_LOG
+            } else {
+                if ($object) {
+                    $code_log = sub {
+                        shift;
+                        my $msg = $code_formatter->(@_);
+                        $code0_log->($init_args, $msg);
+                    };
+                } else {
+                    $code_log = sub {
+                        my $msg = $code_formatter->(@_);
+                        $code0_log->($init_args, $msg);
+                    };
+                }
+            }
             push @routines, [$code_log, $rname, $lnum, ($object ? 2:0) | 1];
         }
     }
