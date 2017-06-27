@@ -1,7 +1,11 @@
-0.009   2017-06-28 (PERLANCAR) (unreleased)
+0.009   2017-06-28 (PERLANCAR)
 
         - Remove Log::ger::Filter and 'create_filter' phase because they are
           unused.
+
+        - Add Layout.
+
+        - Add formatter: None.
 
 
 0.008   2017-06-26 (PERLANCAR)
