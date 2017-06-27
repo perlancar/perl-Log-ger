@@ -24,6 +24,8 @@ our %Level_Aliases = (
 
 our $Current_Level = 3;
 
+our $Caller_Depth_Offset = 0;
+
 # a flag that can be used by null output to skip using formatter
 our $_logger_is_null;
 
@@ -59,6 +61,8 @@ our %Default_Hooks = (
              [$formatter];
          }],
     ],
+
+    create_layouter => [],
 
     create_routine_names => [
         [__PACKAGE__, 90,
@@ -192,6 +196,9 @@ sub init_target {
     my $formatter =
         run_hooks('create_formatter', \%hook_args, 1, $target, $target_arg);
 
+    my $layouter =
+        run_hooks('create_layouter', \%hook_args, 1, $target, $target_arg);
+
     my $routine_names0 =
         run_hooks('create_routine_names', \%hook_args, 1,
                   $target, $target_arg);
@@ -227,29 +234,48 @@ sub init_target {
                     last;
                 }
 
-                if ($object) {
-                    if ($formatter) {
-                        $logger = sub {
-                            shift;
-                            my $msg = $formatter->(@_);
-                            $logger0->($init_args, $msg);
-                        };
+                if ($formatter) {
+                    if ($layouter) {
+                        if ($object) {
+                            $logger = sub {
+                                shift;
+                                $logger0->($init_args,
+                                           $layouter->(
+                                               $formatter->(@_),
+                                               $init_args, $lnum, $lname));
+                            };
+                        } else {
+                            # not object
+                            $logger = sub {
+                                $logger0->($init_args,
+                                           $layouter->(
+                                               $formatter->(@_),
+                                               $init_args, $lnum, $lname));
+                            };
+                        }
                     } else {
-                        # no formatter
+                        # no layouter
+                        if ($object) {
+                            $logger = sub {
+                                shift;
+                                $logger0->($init_args, $formatter->(@_));
+                            };
+                        } else {
+                            # not object
+                            $logger = sub {
+                                $logger0->($init_args, $formatter->(@_));
+                            };
+                        }
+                    }
+                } else {
+                    # no formatter
+                    if ($object) {
                         $logger = sub {
                             shift;
                             $logger0->($init_args, @_);
                         };
-                    }
-                } else {
-                    # not object
-                    if ($formatter) {
-                        $logger = sub {
-                            my $msg = $formatter->(@_);
-                            $logger0->($init_args, $msg);
-                        };
                     } else {
-                        # no formatter
+                        # not object
                         $logger = sub {
                             $logger0->($init_args, @_);
                         };

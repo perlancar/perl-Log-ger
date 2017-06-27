@@ -69,8 +69,8 @@ To set for current package only:
 
 =head1 SEE ALSO
 
-L<Log::ger::Output>
-
 L<Log::ger::Format>
 
-L<Log::ger::Filter>
+L<Log::ger::Layout>
+
+L<Log::ger::Output>

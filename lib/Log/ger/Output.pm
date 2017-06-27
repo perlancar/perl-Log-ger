@@ -40,6 +40,6 @@ To set for current package only:
 
 L<Log::ger::Format>
 
-L<Log::ger::Filter>
+L<Log::ger::Layout>
 
 L<Log::ger::Plugin>
