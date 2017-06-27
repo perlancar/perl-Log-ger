@@ -33,8 +33,6 @@ our %Global_Hooks;
 
 # key = phase, value = [ [key, prio, coderef], ... ]
 our %Default_Hooks = (
-    create_filter => [],
-
     create_formatter => [
         [__PACKAGE__, 90,
          # the default formatter is sprintf-style that dumps data structures
@@ -113,8 +111,6 @@ our %Default_Hooks = (
              [sub { $Current_Level >= $level }];
          }],
     ],
-
-    after_create_is_routine => [],
 
     before_install_routines => [],
 
@@ -198,12 +194,8 @@ sub init_target {
         $package = $target_arg;
     }
 
-    my $code_filter = run_hooks(
-        'create_filter', \%hook_args, 1, $target, $target_arg);
-
-    my $code_formatter =
+    my $formatter =
         run_hooks('create_formatter', \%hook_args, 1, $target, $target_arg);
-    die "No hook created formatter routine" unless $code_formatter;
 
     my $routine_names0 =
         run_hooks('create_routine_names', \%hook_args, 1,
@@ -223,43 +215,48 @@ sub init_target {
             local $hook_args{str_level} = $lname;
 
             $_logger_is_null = 0;
-            my $code0_log =
+            my $logger0 =
                 run_hooks('create_log_routine', \%hook_args, 1,
                           $target, $target_arg);
-            next unless $code0_log;
-            my $code_log;
-            if ($_logger_is_null) {
-                # we don't need to format null logger
-                $code_log = $code0_log;
-            } elsif ($code_filter) {
-                if ($object) {
-                    $code_log = sub {
-                        return unless $code_filter->($lnum, $init_args);
-                        shift;
-                        my $msg = $code_formatter->(@_);
-                        $code0_log->($init_args, $msg);
-                    };
-                } else {
-                    $code_log = sub {
-                        return unless $code_filter->($lnum, $init_args);
-                        my $msg = $code_formatter->(@_);
-                        $code0_log->($init_args, $msg);
-                    };
+            next unless $logger0;
+            my $logger;
+          CREATE_LOGGER:
+            {
+                if ($_logger_is_null) {
+                    # we don't need to format null logger
+                    $logger = $logger0;
+                    last;
                 }
-            } else {
+
                 if ($object) {
-                    $code_log = sub {
-                        shift;
-                        my $msg = $code_formatter->(@_);
-                        $code0_log->($init_args, $msg);
-                    };
+                    if ($formatter) {
+                        $logger = sub {
+                            shift;
+                            my $msg = $formatter->(@_);
+                            $logger0->($init_args, $msg);
+                        };
+                    } else {
+                        # no formatter
+                        $logger = sub {
+                            shift;
+                            $logger0->($init_args, @_);
+                        };
+                    }
                 } else {
-                    $code_log = sub {
-                        my $msg = $code_formatter->(@_);
-                        $code0_log->($init_args, $msg);
-                    };
+                    # not object
+                    if ($formatter) {
+                        $logger = sub {
+                            my $msg = $formatter->(@_);
+                            $logger0->($init_args, $msg);
+                        };
+                    } else {
+                        # no formatter
+                        $logger = sub {
+                            $logger0->($init_args, @_);
+                        };
+                    }
                 }
-            }
+            }  # CREATE_LOGGER
             push @routines, [$code_log, $rname, $lnum, ($object ? 2:0) | 1];
         }
     }
