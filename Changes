@@ -1,3 +1,9 @@
+0.009   2017-06-28 (PERLANCAR) (unreleased)
+
+        - Remove Log::ger::Filter and 'create_filter' phase because they are
+          unused.
+
+
 0.008   2017-06-26 (PERLANCAR)
 
 	- Util: Add string_level().

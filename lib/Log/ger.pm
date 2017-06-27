@@ -189,11 +189,6 @@ sub init_target {
         init_args  => $init_args,
     );
 
-    my $package;
-    if ($target eq 'package') {
-        $package = $target_arg;
-    }
-
     my $formatter =
         run_hooks('create_formatter', \%hook_args, 1, $target, $target_arg);
 
@@ -222,11 +217,15 @@ sub init_target {
                           $target, $target_arg);
             next unless $logger0;
             my $logger;
-            if ($_logger_is_null) {
-                # we don't need to format null logger
-                $logger = $logger0;
-                last;
-            }
+
+            {
+                if ($_logger_is_null) {
+                    # if logger is a null logger (sub {0}) we don't need to
+                    # format message, layout message, or care about the logger
+                    # being a subroutine/object
+                    $logger = $logger0;
+                    last;
+                }
 
                 if ($object) {
                     if ($formatter) {
@@ -257,7 +256,7 @@ sub init_target {
                     }
                 }
             }
-            push @routines, [$code_log, $rname, $lnum, ($object ? 2:0) | 1];
+            push @routines, [$logger, $rname, $lnum, ($object ? 2:0) | 1];
         }
     }
     {
