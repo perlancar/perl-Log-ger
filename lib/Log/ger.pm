@@ -316,7 +316,9 @@ sub init_target {
         no warnings 'redefine';
 #END IFUNBUILT
         for my $r (@routines) {
-            my ($code, $name) = @$r;
+            my ($code, $name, $level, $flags) = @$r;
+            next if $flags & 2;
+            #print "D:installing $name to package $target_arg\n";
             *{"$target_arg\::$name"} = $code;
         }
     } elsif ($target eq 'object') {
@@ -326,12 +328,14 @@ sub init_target {
 #END IFUNBUILT
         my $pkg = ref $target_arg;
         for my $r (@routines) {
-            my ($code, $name) = @$r;
+            my ($code, $name, $level, $flags) = @$r;
+            next unless $flags & 2;
             *{"$pkg\::$name"} = $code;
         }
     } elsif ($target eq 'hash') {
         for my $r (@routines) {
-            my ($code, $name) = @$r;
+            my ($code, $name, $level, $flags) = @$r;
+            next if $flags & 2;
             $target_arg->{$name} = $code;
         }
     }
