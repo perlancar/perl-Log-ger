@@ -432,8 +432,8 @@ OO style. Log::ger can mimic the interface of L<Log::Any>, L<Log::Contextual>,
 L<Log::Log4perl>, or some other popular logging frameworks, to ease migration or
 adjust with your personal style.
 
-B<Per-package settings.> Each importer package can use its own format, output,
-or filter. For example, some modules that are migrated from Log::Any uses
+B<Per-package settings.> Each importer package can use its own format/layout,
+output. For example, some modules that are migrated from Log::Any uses
 Log::Any-style logging, while another uses native Log::ger style, and yet some
 other uses block formatting like Log::Contextual. This eases code migration and
 teamwork. Each module author can preserve her own logging style, if wanted, and
@@ -449,7 +449,7 @@ Log::Any logs (see L<Log::Any::Adapter::LogGer>) or produce logs to be consumed
 by Log::Any (see L<Log::ger::Output::LogAny>).
 
 B<Many output modules and plugins.> See C<Log::ger::Output::*>,
-C<Log::ger::Format::*>, C<Log::ger::Filter::*>, C<Log::ger::Plugin::*>. Writing
+C<Log::ger::Format::*>, C<Log::ger::Layout::*>, C<Log::ger::Plugin::*>. Writing
 an output module in Log::ger is easier than writing a Log::Any::Adapter::*.
 
 =back
