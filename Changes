@@ -1,3 +1,11 @@
+0.010   2017-06-28 (PERLANCAR)
+
+	- [Bugfix] Don't install log methods to package (vice versa, don't
+	  install log subroutines to object package).
+
+	- [doc] Remove mention of filter.
+
+
 0.009   2017-06-28 (PERLANCAR)
 
         - Remove Log::ger::Filter and 'create_filter' phase because they are
