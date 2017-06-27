@@ -204,6 +204,8 @@ sub init_target {
 
     my @routines;
     my $object = $target eq 'object';
+
+  CREATE_LOGGER:
     {
         my $routine_names = $target eq 'package' ?
             $routine_names0->{log_subs} : $routine_names0->{log_methods};
@@ -220,13 +222,11 @@ sub init_target {
                           $target, $target_arg);
             next unless $logger0;
             my $logger;
-          CREATE_LOGGER:
-            {
-                if ($_logger_is_null) {
-                    # we don't need to format null logger
-                    $logger = $logger0;
-                    last;
-                }
+            if ($_logger_is_null) {
+                # we don't need to format null logger
+                $logger = $logger0;
+                last;
+            }
 
                 if ($object) {
                     if ($formatter) {
@@ -256,7 +256,7 @@ sub init_target {
                         };
                     }
                 }
-            }  # CREATE_LOGGER
+            }
             push @routines, [$code_log, $rname, $lnum, ($object ? 2:0) | 1];
         }
     }
