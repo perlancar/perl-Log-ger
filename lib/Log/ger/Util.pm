@@ -153,13 +153,17 @@ sub set_plugin {
 
     my %args = @_;
 
-    my $prefix = $args{prefix} || 'Log::ger::Plugin::';
-
-    my $mod = $args{name};
-    $mod = $prefix . $mod unless index($mod, $prefix) == 0;
-    (my $mod_pm = "$mod.pm") =~ s!::!/!g;
-    require $mod_pm;
-    my $hooks = &{"$mod\::get_hooks"}(%{ $args{conf} || {} });
+    my $hooks;
+    if ($args{hooks}) {
+        $hooks = $args{hooks};
+    } else {
+        my $prefix = $args{prefix} || 'Log::ger::Plugin::';
+        my $mod = $args{name};
+        $mod = $prefix . $mod unless index($mod, $prefix) == 0;
+        (my $mod_pm = "$mod.pm") =~ s!::!/!g;
+        require $mod_pm;
+        $hooks = &{"$mod\::get_hooks"}(%{ $args{conf} || {} });
+    }
 
     for my $phase (keys %$hooks) {
         my $hook = $hooks->{$phase};
