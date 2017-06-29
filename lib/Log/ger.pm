@@ -255,6 +255,8 @@ sub init_target {
             }
             next unless $logger0;
 
+            require Log::ger::Util if !$logger0_is_ml && $routine_name_is_ml;
+
             my $logger;
             {
                 if ($_logger_is_null) {
@@ -277,8 +279,10 @@ sub init_target {
                             }
                         } else { # logger0 not multiple-level
                             if ($routine_name_is_ml) {
-                                if ($object) { $logger = sub { shift; shift;         $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
-                                } else {       $logger = sub {        shift;         $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
+                                if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
+                                                                                     $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
+                                } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
+                                                                                 $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
                             } else { # routine name not multiple-level
                                 if ($object) { $logger = sub { shift;                $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
                                 } else {       $logger = sub {                       $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
@@ -295,8 +299,10 @@ sub init_target {
                             }
                         } else { # logger0 not multiple-level
                             if ($routine_name_is_ml) {
-                                if ($object) { $logger = sub { shift; shift;         $logger0->($init_args,                    $formatter->(@_)                            ) };
-                                } else {       $logger = sub {        shift;         $logger0->($init_args,                    $formatter->(@_)                            ) }; }
+                                if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
+                                                                                     $logger0->($init_args,                    $formatter->(@_)                            ) };
+                                } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
+                                                                                     $logger0->($init_args,                    $formatter->(@_)                            ) }; }
                             } else { # routine name not multiple-level
                                 if ($object) { $logger = sub { shift;                $logger0->($init_args,                    $formatter->(@_)                            ) };
                                 } else {       $logger = sub {                       $logger0->($init_args,                    $formatter->(@_)                            ) }; }
@@ -310,13 +316,15 @@ sub init_target {
                                 if ($object) { $logger = sub { shift; my $lvl=shift; $logger0->($init_args, $lvl,                           @_                             ) };
                                 } else {       $logger = sub {        my $lvl=shift; $logger0->($init_args, $lvl,                           @_                             ) }; }
                             } else { # routine name not multiple-lvl
-                                if ($object) { $logger = sub { shift; my $lvl=shift; $logger0->($init_args, $lnum,                          @_                             ) };
-                                } else {       $logger = sub {        my $lvl=shift; $logger0->($init_args, $lnum,                          @_                             ) }; }
+                                if ($object) { $logger = sub { shift;                $logger0->($init_args, $lnum,                          @_                             ) };
+                                } else {       $logger = sub {                       $logger0->($init_args, $lnum,                          @_                             ) }; }
                             }
                         } else { # logger0 not multiple-level
                             if ($routine_name_is_ml) {
-                                if ($object) { $logger = sub { shift; shift;         $logger0->($init_args,                                 @_                             ) };
-                                } else {       $logger = sub {        shift;         $logger0->($init_args,                                 @_                             ) }; }
+                                if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
+                                                                                     $logger0->($init_args,                                 @_                             ) };
+                                } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
+                                                                                     $logger0->($init_args,                                 @_                             ) }; }
                             } else {
                                 if ($object) { $logger = sub { shift;                $logger0->($init_args,                                 @_                             ) };
                                 } else {       $logger = sub {                       $logger0->($init_args,                                 @_                             ) }; }
