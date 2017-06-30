@@ -1,3 +1,19 @@
+0.011   2017-06-30 (PERLANCAR)
+
+        - [Incompatible change] In hook argument "routines", change $flags to
+          $type to be more general. The value can be 'log_sub', 'log_method',
+          'logml_sub', 'logml_method', 'is_sub', 'is_method'.
+
+        - Support multilevel log statement log($level, ...) by using
+          LGP:MultilevelLog (included in core distribution).
+
+        - [Internal] Introduce phase 'create_logml_routine'.
+
+        - [Test] Add test for LG:Format::None.
+
+        - [Bugfix] reinit_target() didn't find the correct hash key.
+
+
 0.010   2017-06-28 (PERLANCAR)
 
 	- [Bugfix] Don't install log methods to package (vice versa, don't
