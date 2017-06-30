@@ -107,8 +107,6 @@ our %Default_Hooks = (
 
     create_logml_routine => [],
 
-    create_other_routine => [],
-
     create_is_routine => [
         [__PACKAGE__, 90,
          # the default behavior is to compare to global level. normally this
@@ -369,27 +367,6 @@ sub init_target {
                           $target, $target_arg);
             next unless $code_is;
             push @routines, [$code_is, $rname, $lnum, $type];
-        }
-    }
-  CREATE_OTHER_ROUTINES:
-    {
-        my @rn;
-        my $type;
-        if ($target eq 'package') {
-            push @rn, @{ $routine_names->{other_subs} || [] };
-            $type = 'other_sub';
-        } else {
-            push @rn, @{ $routine_names->{other_methods} || [] };
-            $type = 'other_method';
-        }
-        for my $rn (@rn) {
-            my ($rname) = @$rn;
-            local $hook_args{name} = $rname;
-            my $code =
-                run_hooks('create_other_routine', \%hook_args, 1,
-                          $target, $target_arg);
-            next unless $code;
-            push @routines, [$code, $rname, undef, $type];
         }
     }
 
