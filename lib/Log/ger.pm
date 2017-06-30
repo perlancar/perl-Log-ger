@@ -93,14 +93,13 @@ our %Default_Hooks = (
          sub {
              my %args = @_;
              my $level = $args{level};
-             if (defined $level) {
-                 if ($Current_Level < $level ||
-                         # there's only us
-                         @{ $Global_Hooks{create_log_routine} } == 1
-                     ) {
-                     $_logger_is_null = 1;
-                     return [sub {0}];
-                 }
+             if (defined($level) && (
+                 $Current_Level < $level ||
+                     # there's only us
+                     @{ $Global_Hooks{create_log_routine} } == 1)
+             ) {
+                 $_logger_is_null = 1;
+                 return [sub {0}];
              }
              [undef]; # decline
          }],
@@ -253,7 +252,10 @@ sub init_target {
                     or next;
                 last;
             }
-            next unless $logger0;
+            unless ($logger0) {
+                $_logger_is_null = 1;
+                $logger0 = sub {0};
+            }
 
             require Log::ger::Util if !$logger0_is_ml && $routine_name_is_ml;
 
