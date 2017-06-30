@@ -335,16 +335,22 @@ sub init_target {
                     }
                 }
             }
-            push @routines, [$logger, $rname, $lnum, ($object ? 2:0) | 1];
+            my $type = $routine_name_is_ml ?
+                ($object ? 'logml_method' : 'logml_sub') :
+                ($object ? 'log_method' : 'log_sub');
+            push @routines, [$logger, $rname, $lnum, $type];
         }
     }
   CREATE_IS_ROUTINES:
     {
         my @rn;
+        my $type;
         if ($target eq 'package') {
             push @rn, @{ $routine_names->{is_subs} || [] };
+            $type = 'is_sub';
         } else {
             push @rn, @{ $routine_names->{is_methods} || [] };
+            $type = 'is_method';
         }
         for my $rn (@rn) {
             my ($rname, $lname) = @$rn;
@@ -357,7 +363,7 @@ sub init_target {
                 run_hooks('create_is_routine', \%hook_args, 1,
                           $target, $target_arg);
             next unless $code_is;
-            push @routines, [$code_is, $rname, $lnum, ($object ? 2:0) | 0];
+            push @routines, [$code_is, $rname, $lnum, $type];
         }
     }
 
@@ -374,8 +380,8 @@ sub init_target {
         no warnings 'redefine';
 #END IFUNBUILT
         for my $r (@routines) {
-            my ($code, $name, $level, $flags) = @$r;
-            next if $flags & 2;
+            my ($code, $name, $lnum, $type) = @$r;
+            next unless $type =~ /_sub\z/;
             #print "D:installing $name to package $target_arg\n";
             *{"$target_arg\::$name"} = $code;
         }
@@ -386,14 +392,14 @@ sub init_target {
 #END IFUNBUILT
         my $pkg = ref $target_arg;
         for my $r (@routines) {
-            my ($code, $name, $level, $flags) = @$r;
-            next unless $flags & 2;
+            my ($code, $name, $lnum, $type) = @$r;
+            next unless $type =~ /_method\z/;
             *{"$pkg\::$name"} = $code;
         }
     } elsif ($target eq 'hash') {
         for my $r (@routines) {
-            my ($code, $name, $level, $flags) = @$r;
-            next if $flags & 2;
+            my ($code, $name, $lnum, $type) = @$r;
+            next unless $type =~ /_sub\z/;
             $target_arg->{$name} = $code;
         }
     }
