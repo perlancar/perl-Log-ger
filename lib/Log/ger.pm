@@ -275,41 +275,43 @@ sub init_target {
                     if ($layouter) {
                         if ($logger0_is_ml) {
                             if ($routine_name_is_ml) {
-                                if ($object) { $logger = sub { shift; my $lvl=shift; $logger0->($init_args, $lvl,  $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
-                                } else {       $logger = sub {        my $lvl=shift; $logger0->($init_args, $lvl,  $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
+                                if ($object) { $logger = sub { shift; my $lnum=shift; my $lname = Log::ger::Util::string_level($lnum);
+                                                                                      $logger0->($init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
+                                } else {       $logger = sub {        my $lnum=shift; my $lname = Log::ger::Util::string_level($lnum);
+                                                                                      $logger0->($init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
                             } else { # routine name not multiple-level
-                                if ($object) { $logger = sub { shift;                $logger0->($init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
-                                } else {       $logger = sub {                       $logger0->($init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
+                                if ($object) { $logger = sub { shift;                 $logger0->($init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
+                                } else {       $logger = sub {                        $logger0->($init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
                             }
                         } else { # logger0 not multiple-level
                             if ($routine_name_is_ml) {
                                 if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
-                                                                                     $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
+                                                                                      $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
                                 } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
-                                                                                 $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
+                                                                                      $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
                             } else { # routine name not multiple-level
-                                if ($object) { $logger = sub { shift;                $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
-                                } else {       $logger = sub {                       $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
+                                if ($object) { $logger = sub { shift;                 $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };
+                                } else {       $logger = sub {                        $logger0->($init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }
                             }
                         }
                     } else { # no layouter
                         if ($logger0_is_ml) {
                             if ($routine_name_is_ml) {
-                                if ($object) { $logger = sub { shift; my $lvl=shift; $logger0->($init_args, $lvl,              $formatter->(@_)                            ) };
-                                } else {       $logger = sub {        my $lvl=shift; $logger0->($init_args, $lvl,              $formatter->(@_)                            ) }; }
+                                if ($object) { $logger = sub { shift; my $lnum=shift; $logger0->($init_args, $lnum,             $formatter->(@_)                            ) };
+                                } else {       $logger = sub {        my $lnum=shift; $logger0->($init_args, $lnum,             $formatter->(@_)                            ) }; }
                             } else { # routine name not multiple-level
-                                if ($object) { $logger = sub { shift;                $logger0->($init_args, $lnum,             $formatter->(@_)                            ) };
-                                } else {       $logger = sub {                       $logger0->($init_args, $lnum,             $formatter->(@_)                            ) }; }
+                                if ($object) { $logger = sub { shift;                 $logger0->($init_args, $lnum,             $formatter->(@_)                            ) };
+                                } else {       $logger = sub {                        $logger0->($init_args, $lnum,             $formatter->(@_)                            ) }; }
                             }
                         } else { # logger0 not multiple-level
                             if ($routine_name_is_ml) {
                                 if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
-                                                                                     $logger0->($init_args,                    $formatter->(@_)                            ) };
+                                                                                      $logger0->($init_args,                    $formatter->(@_)                            ) };
                                 } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
-                                                                                     $logger0->($init_args,                    $formatter->(@_)                            ) }; }
+                                                                                      $logger0->($init_args,                    $formatter->(@_)                            ) }; }
                             } else { # routine name not multiple-level
-                                if ($object) { $logger = sub { shift;                $logger0->($init_args,                    $formatter->(@_)                            ) };
-                                } else {       $logger = sub {                       $logger0->($init_args,                    $formatter->(@_)                            ) }; }
+                                if ($object) { $logger = sub { shift;                 $logger0->($init_args,                    $formatter->(@_)                            ) };
+                                } else {       $logger = sub {                        $logger0->($init_args,                    $formatter->(@_)                            ) }; }
                             }
                         }
                     }
@@ -317,21 +319,21 @@ sub init_target {
                     { # no layouter, just to align
                         if ($logger0_is_ml) {
                             if ($routine_name_is_ml) {
-                                if ($object) { $logger = sub { shift; my $lvl=shift; $logger0->($init_args, $lvl,                           @_                             ) };
-                                } else {       $logger = sub {        my $lvl=shift; $logger0->($init_args, $lvl,                           @_                             ) }; }
+                                if ($object) { $logger = sub { shift; my $lnum=shift; $logger0->($init_args, $lnum,                          @_                             ) };
+                                } else {       $logger = sub {        my $lnum=shift; $logger0->($init_args, $lnum,                          @_                             ) }; }
                             } else { # routine name not multiple-lvl
-                                if ($object) { $logger = sub { shift;                $logger0->($init_args, $lnum,                          @_                             ) };
-                                } else {       $logger = sub {                       $logger0->($init_args, $lnum,                          @_                             ) }; }
+                                if ($object) { $logger = sub { shift;                 $logger0->($init_args, $lnum,                          @_                             ) };
+                                } else {       $logger = sub {                        $logger0->($init_args, $lnum,                          @_                             ) }; }
                             }
                         } else { # logger0 not multiple-level
                             if ($routine_name_is_ml) {
                                 if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
-                                                                                     $logger0->($init_args,                                 @_                             ) };
+                                                                                      $logger0->($init_args,                                 @_                             ) };
                                 } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;
-                                                                                     $logger0->($init_args,                                 @_                             ) }; }
+                                                                                      $logger0->($init_args,                                 @_                             ) }; }
                             } else {
-                                if ($object) { $logger = sub { shift;                $logger0->($init_args,                                 @_                             ) };
-                                } else {       $logger = sub {                       $logger0->($init_args,                                 @_                             ) }; }
+                                if ($object) { $logger = sub { shift;                 $logger0->($init_args,                                 @_                             ) };
+                                } else {       $logger = sub {                        $logger0->($init_args,                                 @_                             ) }; }
                             }
                         }
                     }
