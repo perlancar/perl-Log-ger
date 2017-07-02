@@ -196,11 +196,15 @@ sub reinit_target {
         my $init_args = $Log::ger::Package_Targets{$target_arg};
         Log::ger::init_target(package => $target_arg, $init_args);
     } elsif ($target eq 'object') {
-        my $v = $Log::ger::Object_Targets{$target_arg}
+        my ($obj_addr) = $target_arg =~ /\(0x(\w+)/
+            or die "Invalid object '$target_arg': not a reference";
+        my $v = $Log::ger::Object_Targets{$obj_addr}
             or die "Unknown object target '$target_arg'";
         Log::ger::init_target(object => $v->[0], $v->[1]);
     } elsif ($target eq 'hash') {
-        my $v = $Log::ger::Hash_Targets{$target_arg}
+        my ($hash_addr) = $target_arg =~ /\(0x(\w+)/
+            or die "Invalid hashref '$target_arg': not a reference";
+        my $v = $Log::ger::Hash_Targets{$hash_addr}
             or die "Unknown hash target '$target_arg'";
         Log::ger::init_target(hash => $v->[0], $v->[1]);
     } else {
