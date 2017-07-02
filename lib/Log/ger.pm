@@ -235,11 +235,13 @@ sub init_target {
             push @rn, @{ $routine_names->{log_methods} || [] };
             push @rn, @{ $routine_names->{logml_methods} || [] };
         }
+        my $mllogger0;
         for my $rn (@rn) {
             my ($rname, $lname) = @$rn;
             my $lnum = $Levels{$lname} if defined $lname;
-
             my $routine_name_is_ml = !defined($lname);
+
+            my $logger;
             my ($logger0, $logger0_is_ml);
             $_logger_is_null = 0;
             for my $phase (qw/create_logml_routine create_log_routine/) {
@@ -247,9 +249,18 @@ sub init_target {
                 local $hook_args{level} = $lnum;
                 local $hook_args{str_level} = $lname;
                 $logger0_is_ml = $phase eq 'create_logml_routine';
+                if ($mllogger0) {
+                    # we reuse the same multilevel logger0 for all log routines,
+                    # since it can handle different levels
+                    $logger0 = $mllogger0;
+                    last;
+                }
                 $logger0 = run_hooks(
                     $phase, \%hook_args, 1, $target, $target_arg)
                     or next;
+                if ($logger0_is_ml) {
+                    $mllogger0 = $logger0;
+                }
                 last;
             }
             # this can happen if there is no create_logml_routine hook but
@@ -261,7 +272,6 @@ sub init_target {
 
             require Log::ger::Util if !$logger0_is_ml && $routine_name_is_ml;
 
-            my $logger;
             {
                 if ($_logger_is_null) {
                     # if logger is a null logger (sub {0}) we don't need to
@@ -339,6 +349,7 @@ sub init_target {
                     }
                 }
             }
+          L1:
             my $type = $routine_name_is_ml ?
                 ($object ? 'logml_method' : 'logml_sub') :
                 ($object ? 'log_method' : 'log_sub');
