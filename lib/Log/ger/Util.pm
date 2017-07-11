@@ -68,10 +68,10 @@ sub _action_on_hooks {
     if ($target eq 'package') {
         $hooks = ($Log::ger::Per_Package_Hooks{$target_arg}{$phase} ||= []);
     } elsif ($target eq 'object') {
-        my ($addr) = $target_arg =~ /\(0x(\w+)/;
+        my ($addr) = $target_arg =~ $Log::ger::re_addr;
         $hooks = ($Log::ger::Per_Object_Hooks{$addr}{$phase} ||= []);
     } elsif ($target eq 'hash') {
-        my ($addr) = $target_arg =~ /\(0x(\w+)/;
+        my ($addr) = $target_arg =~ $Log::ger::re_addr;
         $hooks = ($Log::ger::Per_Hash_Hooks{$addr}{$phase} ||= []);
     }
 
@@ -196,13 +196,13 @@ sub reinit_target {
         my $init_args = $Log::ger::Package_Targets{$target_arg};
         Log::ger::init_target(package => $target_arg, $init_args);
     } elsif ($target eq 'object') {
-        my ($obj_addr) = $target_arg =~ /\(0x(\w+)/
+        my ($obj_addr) = $target_arg =~ $Log::ger::re_addr
             or die "Invalid object '$target_arg': not a reference";
         my $v = $Log::ger::Object_Targets{$obj_addr}
             or die "Unknown object target '$target_arg'";
         Log::ger::init_target(object => $v->[0], $v->[1]);
     } elsif ($target eq 'hash') {
-        my ($hash_addr) = $target_arg =~ /\(0x(\w+)/
+        my ($hash_addr) = $target_arg =~ $Log::ger::re_addr
             or die "Invalid hashref '$target_arg': not a reference";
         my $v = $Log::ger::Hash_Targets{$hash_addr}
             or die "Unknown hash target '$target_arg'";

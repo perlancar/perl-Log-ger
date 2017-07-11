@@ -8,7 +8,7 @@ use strict;
 use warnings;
 #END IFUNBUILT
 
-my $re_addr = qr/\(0x(\w+)/o;
+our $re_addr = qr/\(0x(\w+)/o;
 
 our %Levels = (
     fatal   => 1,
