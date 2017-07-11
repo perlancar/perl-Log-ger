@@ -402,6 +402,8 @@ sub init_target {
 
     {
         local $hook_args{routines} = \@routines;
+        local $hook_args{formatters} = \%formatters;
+        local $hook_args{layouter} = $layouter;
         run_hooks('before_install_routines', \%hook_args, 0,
                   $target, $target_arg);
     }
