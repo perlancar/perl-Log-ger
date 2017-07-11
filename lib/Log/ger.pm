@@ -8,6 +8,8 @@ use strict;
 use warnings;
 #END IFUNBUILT
 
+my $re_addr = qr/\(0x(\w+)/o;
+
 our %Levels = (
     fatal   => 1,
     error   => 2,
@@ -151,10 +153,10 @@ sub run_hooks {
     if ($target eq 'package') {
         unshift @hooks, @{ $Per_Package_Hooks{$target_arg}{$phase} || [] };
     } elsif ($target eq 'hash') {
-        my ($addr) = "$target_arg" =~ /\(0x(\w+)/;
+        my ($addr) = "$target_arg" =~ $re_addr;
         unshift @hooks, @{ $Per_Hash_Hooks{$addr}{$phase} || [] };
     } elsif ($target eq 'object') {
-        my ($addr) = "$target_arg" =~ /\(0x(\w+)/;
+        my ($addr) = "$target_arg" =~ $re_addr;
         unshift @hooks, @{ $Per_Object_Hooks{$target_arg}{$phase} || [] };
     }
 
@@ -183,11 +185,11 @@ sub add_target {
         unless ($replace) { return if $Package_Targets{$target_arg} }
         $Package_Targets{$target_arg} = $args;
     } elsif ($target eq 'object') {
-        my ($addr) = "$target_arg" =~ /\(0x(\w+)/;
+        my ($addr) = "$target_arg" =~ $re_addr;
         unless ($replace) { return if $Object_Targets{$addr} }
         $Object_Targets{$addr} = [$target_arg, $args];
     } elsif ($target eq 'hash') {
-        my ($addr) = "$target_arg" =~ /\(0x(\w+)/;
+        my ($addr) = "$target_arg" =~ $re_addr;
         unless ($replace) { return if $Hash_Targets{$addr} }
         $Hash_Targets{$addr} = [$target_arg, $args];
     }
@@ -441,7 +443,7 @@ sub get_logger {
 
     my $caller = caller(0);
     $args{category} = $caller if !defined($args{category});
-    my $obj = []; $obj =~ /\(0x(\w+)/;
+    my $obj = []; $obj =~ $re_addr;
     my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
     add_target(object => $obj, \%args);
     init_target(object => $obj, \%args);
