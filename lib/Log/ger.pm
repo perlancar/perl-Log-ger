@@ -205,8 +205,18 @@ sub init_target {
         init_args  => $init_args,
     );
 
-    my $formatter =
-        run_hooks('create_formatter', \%hook_args, 1, $target, $target_arg);
+    my %formatters;
+    run_hooks(
+        'create_formatter', \%hook_args,
+        # collect formatters, until a hook instructs to stop
+        sub {
+            my ($hook, $hook_res) = @_;
+            my ($formatter, $flow_control, $fmtname) = @$hook_res;
+            $fmtname = 'default' if !defined($fmtname);
+            $formatters{$fmtname} ||= $formatter;
+            $flow_control;
+        },
+        $target, $target_arg);
 
     my $layouter =
         run_hooks('create_layouter', \%hook_args, 1, $target, $target_arg);
@@ -214,13 +224,15 @@ sub init_target {
     my $routine_names = {};
     run_hooks(
         'create_routine_names', \%hook_args,
+        # collect routine names, until a hook instructs to stop.
         sub {
             my ($hook, $hook_res) = @_;
-            my $rn = $hook_res->[0] or return;
+            my ($rn, $flow_control) = @$hook_res;
+            $rn or return;
             for (keys %$rn) {
                 push @{ $routine_names->{$_} }, @{ $rn->{$_} };
             }
-            $hook_res->[1];
+            $flow_control;
         },
         $target, $target_arg);
 
@@ -239,9 +251,10 @@ sub init_target {
         }
         my $mllogger0;
         for my $rn (@rn) {
-            my ($rname, $lname) = @$rn;
+            my ($rname, $lname, $fmtname) = @$rn;
             my $lnum = $Levels{$lname} if defined $lname;
             my $routine_name_is_ml = !defined($lname);
+            $fmtname = 'default' if !defined($fmtname);
 
             my $logger;
             my ($logger0, $logger0_is_ml);
@@ -283,6 +296,8 @@ sub init_target {
                     last;
                 }
 
+                my $formatter = $formatters{$fmtname}
+                    or die "Formatter named '$fmtname' not available";
                 if ($formatter) {
                     if ($layouter) {
                         if ($logger0_is_ml) {
