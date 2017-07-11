@@ -1,3 +1,8 @@
+0.013   2017-07-11 (PERLANCAR)
+
+	- Allow multiple formatters.
+
+
 0.012   2017-07-02 (PERLANCAR)
 
 	- [optimize] init_target: Reuse multilevel log routine from hook
