@@ -34,6 +34,7 @@ our $_logger_is_null;
 our $_dumper;
 
 our %Global_Hooks;
+our $Global_Cache; # currently only for package. arrayref of routines.
 
 # key = phase, value = [ [key, prio, coderef], ... ]
 our %Default_Hooks = (
@@ -197,8 +198,42 @@ sub add_target {
 
 sub init_target {
     my ($target, $target_arg, $init_args) = @_;
-
     #print "D:init_target($target, $target_arg, ...)\n";
+
+    my $routines;
+    my $update_global_cache = 1;
+
+  USE_CACHE:
+    {
+        last unless $target eq 'package';
+        if ($target eq 'package') {
+            if (keys %{$Per_Package_Hooks{$target_arg}}) {
+                $update_global_cache = 0;
+                last;
+            }
+        }
+        #if ($target eq 'hash') {
+        #    my ($addr) = $target_arg =~ $re_addr;
+        #    if (keys %{$Per_Hash_Hooks{$addr}}) {
+        #        $update_global_cache = 0;
+        #        last;
+        #    }
+        #}
+        #if ($target eq 'object') {
+        #    my ($addr) = $target_arg =~ $re_addr;
+        #    if (keys %{$Per_Object_Hooks{$addr}}) {
+        #        $update_global_cache = 0;
+        #        last;
+        #    }
+        #}
+        last unless $Global_Cache;
+        #print "D:we can use the cache!\n";
+        $update_global_cache = 0;
+        $routines = $Global_Cache;
+        #use DD; dd $routines;
+        goto BEFORE_INSTALL_HOOK;
+    }
+
     my %hook_args = (
         target     => $target,
         target_arg => $target_arg,
@@ -224,11 +259,11 @@ sub init_target {
         },
         $target, $target_arg);
 
-    my @routines;
     my $object = $target eq 'object';
 
   CREATE_LOG_ROUTINES:
     {
+        $routines = [];
         my @rn;
         if ($target eq 'package') {
             push @rn, @{ $routine_names->{log_subs} || [] };
@@ -355,9 +390,10 @@ sub init_target {
             my $type = $routine_name_is_ml ?
                 ($object ? 'logml_method' : 'logml_sub') :
                 ($object ? 'log_method' : 'log_sub');
-            push @routines, [$logger, $rname, $lnum, $type];
+            push @$routines, [$logger, $rname, $lnum, $type];
         }
     }
+
   CREATE_IS_ROUTINES:
     {
         my @rn;
@@ -381,23 +417,24 @@ sub init_target {
                 run_hooks('create_is_routine', \%hook_args, 1,
                           $target, $target_arg);
             next unless $code_is;
-            push @routines, [$code_is, $rname, $lnum, $type];
+            push @$routines, [$code_is, $rname, $lnum, $type];
         }
     }
 
+  BEFORE_INSTALL_HOOK:
     {
-        local $hook_args{routines} = \@routines;
+        local $hook_args{routines} = $routines;
         run_hooks('before_install_routines', \%hook_args, 0,
                   $target, $target_arg);
     }
 
-    # install
+  INSTALL:
     if ($target eq 'package') {
 #IFUNBUILT
         no strict 'refs';
         no warnings 'redefine';
 #END IFUNBUILT
-        for my $r (@routines) {
+        for my $r (@$routines) {
             my ($code, $name, $lnum, $type) = @$r;
             next unless $type =~ /_sub\z/;
             #print "D:installing $name to package $target_arg\n";
@@ -409,23 +446,30 @@ sub init_target {
         no warnings 'redefine';
 #END IFUNBUILT
         my $pkg = ref $target_arg;
-        for my $r (@routines) {
+        for my $r (@$routines) {
             my ($code, $name, $lnum, $type) = @$r;
             next unless $type =~ /_method\z/;
             *{"$pkg\::$name"} = $code;
         }
     } elsif ($target eq 'hash') {
-        for my $r (@routines) {
+        for my $r (@$routines) {
             my ($code, $name, $lnum, $type) = @$r;
             next unless $type =~ /_sub\z/;
             $target_arg->{$name} = $code;
         }
     }
 
+  AFTER_INSTALL_HOOK:
     {
-        local $hook_args{routines} = \@routines;
+        local $hook_args{routines} = $routines;
         run_hooks('after_install_routines', \%hook_args, 0,
                   $target, $target_arg);
+    }
+
+  UPDATE_CACHE:
+    {
+        last unless $update_global_cache;
+        $Global_Cache = $routines;
     }
 }
 

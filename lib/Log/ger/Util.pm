@@ -56,6 +56,7 @@ sub string_level {
 sub set_level {
     no warnings 'once';
     $Log::ger::Current_Level = numeric_level(shift);
+    undef $Log::ger::Global_Cache;
     reinit_all_targets();
 }
 
@@ -80,20 +81,24 @@ sub _action_on_hooks {
         # XXX remove duplicate key
         # my $key = $hook->[0];
         unshift @$hooks, $hook;
+        undef $Log::ger::Global_Cache if !$target;
     } elsif ($action eq 'reset') {
         my $saved = [@$hooks];
         splice @$hooks, 0, scalar(@$hooks),
             @{ $Log::ger::Default_Hooks{$phase} };
+        undef $Log::ger::Global_Cache if !$target;
         return $saved;
     } elsif ($action eq 'empty') {
         my $saved = [@$hooks];
         splice @$hooks, 0;
+        undef $Log::ger::Global_Cache if !$target;
         return $saved;
     } elsif ($action eq 'save') {
         return [@$hooks];
     } elsif ($action eq 'restore') {
         my $saved = shift;
         splice @$hooks, 0, scalar(@$hooks), @$saved;
+        undef $Log::ger::Global_Cache if !$target;
         return $saved;
     }
 }
