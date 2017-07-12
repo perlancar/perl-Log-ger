@@ -157,7 +157,7 @@ sub run_hooks {
         unshift @hooks, @{ $Per_Hash_Hooks{$addr}{$phase} || [] };
     } elsif ($target eq 'object') {
         my ($addr) = "$target_arg" =~ $re_addr;
-        unshift @hooks, @{ $Per_Object_Hooks{$target_arg}{$phase} || [] };
+        unshift @hooks, @{ $Per_Object_Hooks{$addr}{$phase} || [] };
     }
 
     my $res;
