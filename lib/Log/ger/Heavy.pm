@@ -11,6 +11,7 @@ use warnings;
 package
     Log::ger;
 
+#IFUNBUILT
 use vars qw(
                $re_addr
                %Levels
@@ -27,6 +28,7 @@ use vars qw(
                %Object_Targets
                %Per_Object_Hooks
        );
+#END IFUNBUILT
 
 # key = phase, value = [ [key, prio, coderef], ... ]
 our %Default_Hooks = (

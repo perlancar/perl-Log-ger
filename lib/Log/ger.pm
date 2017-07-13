@@ -47,6 +47,16 @@ our %Per_Hash_Hooks; # key = hash address, value = { phase => hooks, ... }
 our %Object_Targets; # key = object address, value = [$obj, \%init_args]
 our %Per_Object_Hooks; # key = object address, value = { phase => hooks, ... }
 
+my $sub0 = sub {0};
+my $sub1 = sub {1};
+my $default_null_routines = [
+    (map {
+        [$sub0, "log_$_", $Levels{$_}, 'log_sub'],
+            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_",
+             $Levels{$_}, 'is_sub'],
+         } keys %Levels),
+];
+
 sub install_routines {
     my ($target, $target_arg, $routines) = @_;
 
@@ -81,20 +91,6 @@ sub install_routines {
     }
 }
 
-sub get_logger {
-    require Log::ger::Heavy;
-
-    my ($package, %args) = @_;
-
-    my $caller = caller(0);
-    $args{category} = $caller if !defined($args{category});
-    my $obj = []; $obj =~ $re_addr;
-    my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
-    add_target(object => $obj, \%args);
-    init_target(object => $obj, \%args);
-    $obj; # XXX add DESTROY to remove from list of targets
-}
-
 sub add_target {
     my ($target, $target_arg, $args, $replace) = @_;
     $replace = 1 unless defined $replace;
@@ -113,8 +109,25 @@ sub add_target {
     }
 }
 
-my $sub0 = sub {0};
-my $sub1 = sub {1};
+sub get_logger {
+    my ($package, %args) = @_;
+
+    my $caller = caller(0);
+    $args{category} = $caller if !defined($args{category});
+    my $obj = []; $obj =~ $re_addr;
+    my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
+    add_target(object => $obj, \%args);
+    if (keys %Global_Hooks) {
+        require Log::ger::Heavy;
+        init_target(object => $obj, \%args);
+    } else {
+        # if we haven't added any hooks etc, skip init_target() process and use
+        # this preconstructed routines as shortcut, to save startup overhead
+        install_routines(object => $obj, $default_null_routines);
+    }
+    $obj; # XXX add DESTROY to remove from list of targets
+}
+
 sub import {
     my ($package, %args) = @_;
 
@@ -127,16 +140,7 @@ sub import {
     } else {
         # if we haven't added any hooks etc, skip init_target() process and use
         # this preconstructed routines as shortcut, to save startup overhead
-        install_routines(
-            package => $caller,
-            [
-                (map {
-                    [$sub0, "log_$_", $Levels{$_}, 'log_sub'],
-                    [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_",
-                     $Levels{$_}, 'is_sub'],
-                } keys %Levels),
-            ],
-        );
+        install_routines(package => $caller, $default_null_routines);
     }
 }
 

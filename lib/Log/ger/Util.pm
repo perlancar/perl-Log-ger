@@ -191,7 +191,7 @@ sub reinit_all_targets {
 }
 
 sub set_plugin {
-    use DD; no strict 'refs';
+    no strict 'refs';
 
     my %args = @_;
 
