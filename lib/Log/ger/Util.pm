@@ -7,6 +7,7 @@ use strict;
 use warnings;
 
 require Log::ger;
+require Log::ger::Heavy;
 
 sub _dump {
     unless ($Log::ger::_dumper) {
@@ -148,44 +149,6 @@ sub restore_per_target_hooks {
     _action_on_hooks('restore', $target, $target_arg, $phase, $saved);
 }
 
-sub set_plugin {
-    no strict 'refs';
-
-    my %args = @_;
-
-    my $hooks;
-    if ($args{hooks}) {
-        $hooks = $args{hooks};
-    } else {
-        my $prefix = $args{prefix} || 'Log::ger::Plugin::';
-        my $mod = $args{name};
-        $mod = $prefix . $mod unless index($mod, $prefix) == 0;
-        (my $mod_pm = "$mod.pm") =~ s!::!/!g;
-        require $mod_pm;
-        $hooks = &{"$mod\::get_hooks"}(%{ $args{conf} || {} });
-    }
-
-    for my $phase (keys %$hooks) {
-        my $hook = $hooks->{$phase};
-        if (defined $args{target}) {
-            add_per_target_hook(
-                $args{target}, $args{target_arg}, $phase, $hook);
-        } else {
-            add_hook($phase, $hook);
-        }
-    }
-
-    my $reinit = $args{reinit};
-    $reinit = 1 unless defined $reinit;
-    if ($reinit) {
-        if (defined $args{target}) {
-            reinit_target($args{target}, $args{target_arg});
-        } else {
-            reinit_all_targets();
-        }
-    }
-}
-
 sub reinit_target {
     my ($target, $target_arg) = @_;
 
@@ -224,6 +187,44 @@ sub reinit_all_targets {
     for my $k (keys %Log::ger::Hash_Targets) {
         my ($hash, $init_args) = @{ $Log::ger::Hash_Targets{$k} };
         Log::ger::init_target(hash => $hash, $init_args);
+    }
+}
+
+sub set_plugin {
+    use DD; no strict 'refs';
+
+    my %args = @_;
+
+    my $hooks;
+    if ($args{hooks}) {
+        $hooks = $args{hooks};
+    } else {
+        my $prefix = $args{prefix} || 'Log::ger::Plugin::';
+        my $mod = $args{name};
+        $mod = $prefix . $mod unless index($mod, $prefix) == 0;
+        (my $mod_pm = "$mod.pm") =~ s!::!/!g;
+        require $mod_pm;
+        $hooks = &{"$mod\::get_hooks"}(%{ $args{conf} || {} });
+    }
+
+    for my $phase (keys %$hooks) {
+        my $hook = $hooks->{$phase};
+        if (defined $args{target}) {
+            add_per_target_hook(
+                $args{target}, $args{target_arg}, $phase, $hook);
+        } else {
+            add_hook($phase, $hook);
+        }
+    }
+
+    my $reinit = $args{reinit};
+    $reinit = 1 unless defined $reinit;
+    if ($reinit) {
+        if (defined $args{target}) {
+            reinit_target($args{target}, $args{target_arg});
+        } else {
+            reinit_all_targets();
+        }
     }
 }
 
