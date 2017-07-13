@@ -1,3 +1,10 @@
+0.017   2017-07-13 (PERLANCAR)
+
+        - No functional changes.
+
+        - [doc] Update some benchmark numbers.
+
+
 0.016   2017-07-13 (PERLANCAR)
 
 	- Reduce startup overhead by splitting some parts of Log::ger to
