@@ -5,6 +5,8 @@ package Log::ger::Format;
 
 use parent qw(Log::ger::Plugin);
 
+sub _import_sets_for_current_package { 1 }
+
 1;
 # ABSTRACT: Use a format plugin
 
@@ -12,19 +14,25 @@ use parent qw(Log::ger::Plugin);
 
 =head1 SYNOPSIS
 
+To set for current package only:
+
+ use Log::ger::Format 'Block';
+
+or:
+
+ use Log::ger::Format;
+ Log::ger::Format->set_for_current_package('Block');
+
 To set globally:
 
  use Log::ger::Format;
  Log::ger::Format->set('Block');
 
-or:
 
- use Log::ger::Format 'Block';
+=head1 DESCRIPTION
 
-To set for current package only:
-
- use Log::ger::Format;
- Log::ger::Format->set_for_current_package('Block');
+Note: Since format plugins affect log-producing code, the import syntax defaults
+to setting for current package instead of globally.
 
 
 =head1 SEE ALSO

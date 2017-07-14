@@ -39,9 +39,15 @@ sub set_for_current_package {
     set($pkg, \%args);
 }
 
+sub _import_sets_for_current_package { 0 }
+
 sub import {
     if (@_ > 1) {
-        goto &set;
+        if ($_[0]->_import_sets_for_current_package) {
+            goto &set_for_current_package;
+        } else {
+            goto &set;
+        }
     }
 }
 
