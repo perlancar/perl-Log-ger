@@ -54,6 +54,9 @@ my $default_null_routines = [
         [$sub0, "log_$_", $Levels{$_}, 'log_sub'],
             [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_",
              $Levels{$_}, 'is_sub'],
+        [$sub0, $_, $Levels{$_}, 'log_method'],
+            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "is_$_",
+             $Levels{$_}, 'is_method'],
          } keys %Levels),
 ];
 
