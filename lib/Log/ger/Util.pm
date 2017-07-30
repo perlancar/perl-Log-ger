@@ -11,7 +11,11 @@ require Log::ger::Heavy;
 
 sub _dump {
     unless ($Log::ger::_dumper) {
-        eval { require Data::Dmp };
+        eval {
+            require Data::Dmp;
+            $Data::Dmp::OPT_REMOVE_PRAGMAS = 1;
+            1;
+        };
         if ($@) {
             no warnings 'once';
             require Data::Dumper;
