@@ -12,6 +12,7 @@ require Log::ger::Heavy;
 sub _dump {
     unless ($Log::ger::_dumper) {
         eval {
+            no warnings 'once';
             require Data::Dmp;
             $Data::Dmp::OPT_REMOVE_PRAGMAS = 1;
             1;
@@ -210,14 +211,13 @@ sub reinit_all_targets {
 }
 
 sub set_plugin {
-    no strict 'refs';
-
     my %args = @_;
 
     my $hooks;
     if ($args{hooks}) {
         $hooks = $args{hooks};
     } else {
+        no strict 'refs';
         my $prefix = $args{prefix} || 'Log::ger::Plugin::';
         my $mod = $args{name};
         $mod = $prefix . $mod unless index($mod, $prefix) == 0;

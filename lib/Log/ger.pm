@@ -50,14 +50,12 @@ our %Per_Object_Hooks; # key = object address, value = { phase => hooks, ... }
 my $sub0 = sub {0};
 my $sub1 = sub {1};
 my $default_null_routines = [
-    (map {
+    (map {(
         [$sub0, "log_$_", $Levels{$_}, 'log_sub'],
-            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_",
-             $Levels{$_}, 'is_sub'],
+        [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_", $Levels{$_}, 'is_sub'],
         [$sub0, $_, $Levels{$_}, 'log_method'],
-            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "is_$_",
-             $Levels{$_}, 'is_method'],
-         } keys %Levels),
+        [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "is_$_", $Levels{$_}, 'is_method'],
+    )} keys %Levels),
 ];
 
 sub install_routines {

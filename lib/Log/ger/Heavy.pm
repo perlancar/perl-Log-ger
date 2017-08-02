@@ -220,7 +220,7 @@ sub init_target {
         my $mllogger0;
         for my $rn (@rn) {
             my ($rname, $lname, $fmtname) = @$rn;
-            my $lnum = $Levels{$lname} if defined $lname;
+            my $lnum; $lnum = $Levels{$lname} if defined $lname;
             my $routine_name_is_ml = !defined($lname);
             $fmtname = 'default' if !defined($fmtname);
 
