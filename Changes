@@ -3,6 +3,8 @@
 	- [Bugfix] Output, Layout: set() now properly replaces hooks from
 	  previous output/layout plugin (need to remove from all phases).
 
+        - Add output for testing: ArrayML.
+
 
 0.020   2017-07-30 (PERLANCAR)
 
