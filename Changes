@@ -1,3 +1,9 @@
+0.021   2017-08-02 (PERLANCAR)
+
+	- [Bugfix] Output, Layout: set() now properly replaces hooks from
+	  previous output/layout plugin (need to remove from all phases).
+
+
 0.020   2017-07-30 (PERLANCAR)
 
 	- [ux] Enable $Data::Dmp::OPT_REMOVE_PRAGMAS.
