@@ -19,6 +19,7 @@ sub set {
     }
 
     $args{prefix} ||= $pkg . '::';
+    $args{replace_package_regex} = $pkg->_replace_package_regex;
     Log::ger::Util::set_plugin(%args);
 }
 
@@ -40,6 +41,8 @@ sub set_for_current_package {
 }
 
 sub _import_sets_for_current_package { 0 }
+
+sub _replace_package_regex { undef }
 
 sub import {
     if (@_ > 1) {

@@ -33,7 +33,6 @@ subtest string_level => sub {
 subtest "basics" => sub {
     subtest "import" => sub {
         my $str = "";
-        Log::ger::Util::reset_hooks('create_log_routine');
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
 
@@ -51,7 +50,6 @@ subtest "basics" => sub {
 
     subtest "init_target package" => sub {
         my $str = "";
-        Log::ger::Util::reset_hooks('create_log_routine');
         Log::ger::Util::set_level(3);
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
@@ -63,7 +61,6 @@ subtest "basics" => sub {
 
     subtest "init_target hash" => sub {
         my $str = "";
-        Log::ger::Util::reset_hooks('create_log_routine');
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
         Log::ger::Util::set_level(3);
@@ -81,7 +78,6 @@ subtest "basics" => sub {
 
     subtest "init_target object" => sub {
         my $str = "";
-        Log::ger::Util::reset_hooks('create_log_routine');
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
         Log::ger::Util::set_level(3);
@@ -170,6 +166,33 @@ subtest "basics" => sub {
     };
 };
 
+subtest "switch output" => sub {
+    require Log::ger::Output;
+    my $str = "";
+    my $ary = [];
+    my $h = {};
+    Log::ger::add_target(hash => $h);
+
+    Log::ger::Output->set('String', string => \$str);
+    $h->{warn}("warn1");
+    is_deeply($str, "warn1\n");
+    is_deeply($ary, []);
+
+    Log::ger::Output->set('ArrayML', array => $ary);
+    $h->{warn}("warn2");
+    is_deeply($str, "warn1\n");
+    is_deeply($ary, ["warn2"]);
+
+    Log::ger::Output->set('String', string => \$str);
+    $h->{warn}("warn3");
+    is_deeply($str, "warn1\nwarn3\n");
+    is_deeply($ary, ["warn2"]);
+
+    Log::ger::Output->set('ArrayML', array => $ary);
+    $h->{warn}("warn4");
+    is_deeply($str, "warn1\nwarn3\n");
+    is_deeply($ary, ["warn2", "warn4"]);
+};
+
 DONE_TESTING:
-done_testing
-    ;
+done_testing;

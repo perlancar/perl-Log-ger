@@ -85,6 +85,11 @@ sub _action_on_hooks {
         # XXX remove duplicate key
         # my $key = $hook->[0];
         unshift @$hooks, $hook;
+    } elsif ($action eq 'remove') {
+        my $code = shift;
+        for my $i (reverse 0..$#{$hooks}) {
+            splice @$hooks, $i, 1 if $code->($hooks->[$i]);
+        }
     } elsif ($action eq 'reset') {
         my $saved = [@$hooks];
         splice @$hooks, 0, scalar(@$hooks),
@@ -111,6 +116,16 @@ sub add_hook {
 sub add_per_target_hook {
     my ($target, $target_arg, $phase, $hook) = @_;
     _action_on_hooks('add', $target, $target_arg, $phase, $hook);
+}
+
+sub remove_hook {
+    my ($phase, $code) = @_;
+    _action_on_hooks('remove', '', undef, $phase, $code);
+}
+
+sub remove_per_target_hook {
+    my ($target, $target_arg, $phase, $code) = @_;
+    _action_on_hooks('remove', $target, $target_arg, $phase, $code);
 }
 
 sub reset_hooks {
@@ -209,6 +224,30 @@ sub set_plugin {
         (my $mod_pm = "$mod.pm") =~ s!::!/!g;
         require $mod_pm;
         $hooks = &{"$mod\::get_hooks"}(%{ $args{conf} || {} });
+    }
+
+    {
+        last unless $args{replace_package_regex};
+        my $all_hooks;
+        if (!$args{target}) {
+            $all_hooks = \%Log::ger::Global_Hooks;
+        } elsif ($args{target} eq 'package') {
+            $all_hooks = $Log::ger::Per_Package_Hooks{ $args{target_arg} };
+        } elsif ($args{target} eq 'object') {
+            my ($addr) = $args{target_arg} =~ $Log::ger::re_addr;
+            $all_hooks = $Log::ger::Per_Object_Hooks{$addr};
+        } elsif ($args{target} eq 'hash') {
+            my ($addr) = $args{target_arg} =~ $Log::ger::re_addr;
+            $all_hooks = $Log::ger::Per_Hash_Hooks{$addr};
+        }
+        last unless $all_hooks;
+        for my $phase (keys %$all_hooks) {
+            my $hooks = $all_hooks->{$phase};
+            for my $i (reverse 0..$#{$hooks}) {
+                splice @$hooks, $i, 1
+                    if $hooks->[$i][0] =~ $args{replace_package_regex};
+            }
+        }
     }
 
     for my $phase (keys %$hooks) {
