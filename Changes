@@ -35,8 +35,8 @@
 
 0.018   2017-07-14 (PERLANCAR)
 
-	- use Log::ger::Format 'Foo' now sets for current package instead
-	  of globally (but the other plugins like Log::ger::Output or
+	- 'use Log::ger::Format "Foo"' now sets for current package instead of
+	  globally (but the other plugins like Log::ger::Output or
 	  Log::ger::Layout still defaults to setting globally).
 
 
