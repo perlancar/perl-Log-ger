@@ -49,6 +49,7 @@ our %Per_Object_Hooks; # key = object address, value = { phase => hooks, ... }
 
 my $sub0 = sub {0};
 my $sub1 = sub {1};
+my $default_null_routines;
 
 sub install_routines {
     my ($target, $target_arg, $routines) = @_;
