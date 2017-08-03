@@ -28,7 +28,7 @@ or:
 
  use Log::ger::Output 'Screen', (
      use_color=>1,
- ...
+     ...
  );
 
 To set for current package only:
