@@ -18,13 +18,13 @@ package main;
 use Log::ger::Util;
 
 subtest numeric_level => sub {
-    is(Log::ger::Util::numeric_level(1), 1);
-    is(Log::ger::Util::numeric_level("info"), 4);
+    is(Log::ger::Util::numeric_level(10), 10);
+    is(Log::ger::Util::numeric_level("info"), 40);
     # XXX check unknown level
 };
 
 subtest string_level => sub {
-    is(Log::ger::Util::string_level(1), "fatal");
+    is(Log::ger::Util::string_level(10), "fatal");
     is(Log::ger::Util::string_level("info"), "info");
     is(Log::ger::Util::string_level("warning"), "warn");
     # XXX check unknown level
@@ -41,7 +41,7 @@ subtest "basics" => sub {
         is($str, "warn\n");
         {
             $str = "";
-            Log::ger::Util::set_level(5);
+            Log::ger::Util::set_level(50);
             My::P1::log_warn("warn");
             My::P1::log_debug("debug");
             is($str, "warn\ndebug\n");
@@ -50,7 +50,7 @@ subtest "basics" => sub {
 
     subtest "init_target package" => sub {
         my $str = "";
-        Log::ger::Util::set_level(3);
+        Log::ger::Util::set_level(30);
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
         Log::ger::init_target(package => 'My::P2');
@@ -63,7 +63,7 @@ subtest "basics" => sub {
         my $str = "";
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
-        Log::ger::Util::set_level(3);
+        Log::ger::Util::set_level(30);
         my $h = {}; Log::ger::init_target(hash => $h);
 
         is(ref $h, 'HASH');
@@ -80,7 +80,7 @@ subtest "basics" => sub {
         my $str = "";
         require Log::ger::Output;
         Log::ger::Output->set('String', string => \$str);
-        Log::ger::Util::set_level(3);
+        Log::ger::Util::set_level(30);
         my $o = bless [], "My::Logger"; Log::ger::init_target(object => $o);
 
         $o->fatal("fatal");
@@ -103,9 +103,9 @@ subtest "basics" => sub {
             $o->trace("trace");
             is($str, "");
         };
-        subtest "level=fatal (1)" => sub {
+        subtest "level=fatal (10)" => sub {
             $str = "";
-            Log::ger::Util::set_level(1);
+            Log::ger::Util::set_level(10);
             my $o = bless [], "My::Logger"; Log::ger::init_target(object => $o);
             $o->fatal("fatal");
             $o->error("error");
@@ -115,9 +115,9 @@ subtest "basics" => sub {
             $o->trace("trace");
             is($str, "fatal\n");
         };
-        subtest "level=error (2)" => sub {
+        subtest "level=error (20)" => sub {
             $str = "";
-            Log::ger::Util::set_level(2);
+            Log::ger::Util::set_level(20);
             my $o = bless [], "My::Logger"; Log::ger::init_target(object => $o);
             $o->fatal("fatal");
             $o->error("error");
@@ -127,9 +127,9 @@ subtest "basics" => sub {
             $o->trace("trace");
             is($str, "fatal\nerror\n");
         };
-        subtest "level=info (4)" => sub {
+        subtest "level=info (40)" => sub {
             $str = "";
-            Log::ger::Util::set_level(4);
+            Log::ger::Util::set_level(40);
             my $o = bless [], "My::Logger"; Log::ger::init_target(object => $o);
             $o->fatal("fatal");
             $o->error("error");
@@ -139,9 +139,9 @@ subtest "basics" => sub {
             $o->trace("trace");
             is($str, "fatal\nerror\nwarn\ninfo\n");
         };
-        subtest "level=debug (5)" => sub {
+        subtest "level=debug (50)" => sub {
             $str = "";
-            Log::ger::Util::set_level(5);
+            Log::ger::Util::set_level(50);
             my $o = bless [], "My::Logger"; Log::ger::init_target(object => $o);
             $o->fatal("fatal");
             $o->error("error");
@@ -151,9 +151,9 @@ subtest "basics" => sub {
             $o->trace("trace");
             is($str, "fatal\nerror\nwarn\ninfo\ndebug\n");
         };
-        subtest "level=trace (6)" => sub {
+        subtest "level=trace (60)" => sub {
             $str = "";
-            Log::ger::Util::set_level(6);
+            Log::ger::Util::set_level(60);
             my $o = bless [], "My::Logger"; Log::ger::init_target(object => $o);
             $o->fatal("fatal");
             $o->error("error");

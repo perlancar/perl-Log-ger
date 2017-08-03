@@ -11,20 +11,20 @@ use warnings;
 our $re_addr = qr/\(0x([0-9a-f]+)/o;
 
 our %Levels = (
-    fatal   => 1,
-    error   => 2,
-    warn    => 3,
-    info    => 4,
-    debug   => 5,
-    trace   => 6,
+    fatal   => 10,
+    error   => 20,
+    warn    => 30,
+    info    => 40,
+    debug   => 50,
+    trace   => 60,
 );
 
 our %Level_Aliases = (
-    off => 0,
-    warning => 3,
+    off     => 0,
+    warning => 30,
 );
 
-our $Current_Level = 3;
+our $Current_Level = 30;
 
 our $Caller_Depth_Offset = 0;
 
