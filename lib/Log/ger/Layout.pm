@@ -7,7 +7,7 @@ use parent qw(Log::ger::Plugin);
 
 # we only use one output, so set() should replace all hooks from previously set
 # plugin package
-sub _replace_package_regex { qr/\ALog::ger::Output::/ }
+sub _replace_package_regex { qr/\ALog::ger::Layout::/ }
 
 1;
 # ABSTRACT: Use a layout plugin
