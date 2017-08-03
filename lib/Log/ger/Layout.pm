@@ -19,7 +19,7 @@ sub _replace_package_regex { qr/\ALog::ger::Layout::/ }
 To set globally:
 
  use Log::ger::Layout;
- Log::ger::Format->set('Pattern');
+ Log::ger::Layout->set('Pattern');
 
 or:
 
