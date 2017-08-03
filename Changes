@@ -1,3 +1,12 @@
+0.023   2017-08-03 (PERLANCAR)
+
+        - [Internal] Change the numeric values of level, to accomodate more room
+          for custom levels".
+
+	- Defer set default null routines so other module can customize
+	  levels.
+
+
 0.022   2017-08-03 (PERLANCAR)
 
 	- [Bugfix] Fix stupid copy-paste mistake [RT#122687].
