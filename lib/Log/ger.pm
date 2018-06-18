@@ -225,11 +225,11 @@ L<Log::Log4perl>, or some other popular logging frameworks, to ease migration or
 adjust with your personal style.
 
 B<Per-package settings.> Each importer package can use its own format/layout,
-output. For example, some modules that are migrated from Log::Any uses
-Log::Any-style logging, while another uses native Log::ger style, and yet some
-other uses block formatting like Log::Contextual. This eases code migration and
-teamwork. Each module author can preserve her own logging style, if wanted, and
-all the modules still use the same framework.
+output. For example, a module that is migrated from Log::Any uses Log::Any-style
+logging, while another uses native Log::ger style, and yet some other uses block
+formatting like Log::Contextual. This eases code migration and teamwork. Each
+module author can preserve her own logging style, if wanted, and all the modules
+still use the same framework.
 
 B<Dynamic.> Outputs and levels can be changed anytime during run-time and
 logging routines will be updated automatically. This is useful in situation like
