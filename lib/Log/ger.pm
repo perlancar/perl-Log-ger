@@ -202,8 +202,14 @@ provided in separate distributions to be pulled as needed.
 B<Low startup overhead.> Only ~0.5-1ms. For comparison, L<strict> ~0.2-0.5ms,
 L<warnings> ~2ms, L<Log::Any> 0.15 ~2-3ms, Log::Any 1.049 ~8-10ms,
 L<Log::Log4perl> ~35ms. This is measured on a 2014-2015 PC and before doing any
-output configuration. For more benchmarks, see L<Bencher::Scenarios::LogGer> or
-try yourself e.g. with L<bencher-code>:
+output configuration. I strive to make C<use Log::ger;> statement to be roughly
+as light as C<use strict;> or C<use warnings;> so the impact of adding the
+statement is really minimal and you can just add logging without much thought to
+most of your modules. This is important to me because I want logging to be
+pervasive.
+
+For more benchmarks, see L<Bencher::Scenarios::LogGer> or try yourself e.g. with
+L<bencher-code>:
 
  % bencher-code 'use Log::ger' 'use Log::Any' --startup
 
