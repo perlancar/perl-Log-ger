@@ -262,4 +262,7 @@ For more documentation, start with L<Log::ger::Manual>.
 Some other popular logging frameworks: L<Log::Any>, L<Log::Contextual>,
 L<Log::Log4perl>, L<Log::Dispatch>, L<Log::Dispatchouli>.
 
+If you still prefer debugging using the good old C<print()>, there's
+L<Debug::Print>.
+
 =cut
