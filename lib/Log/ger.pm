@@ -208,14 +208,15 @@ statement is really minimal and you can just add logging without much thought to
 most of your modules. This is important to me because I want logging to be
 pervasive.
 
-For more benchmarks, see L<Bencher::Scenarios::LogGer> or try yourself e.g. with
-L<bencher-code>:
+To test for yourself, try e.g. with L<bencher-code>:
 
  % bencher-code 'use Log::ger' 'use Log::Any' --startup
 
 B<Fast>. Low null-/stealth-logging overhead, about 1.5x faster than Log::Any, 3x
-faster than Log4perl, 5x faster than L<Log::Fast>, and ~100x faster than
-L<Log::Dispatch>.
+faster than Log4perl, 5x faster than L<Log::Fast>, ~40x faster than
+L<Log::Contextual>, and ~100x faster than L<Log::Dispatch>.
+
+For more benchmarks, see L<Bencher::Scenarios::LogGer>.
 
 B<Conditional compilation.> There is a plugin to optimize away unneeded logging
 statements, like assertion/conditional compilation, so they have zero runtime
