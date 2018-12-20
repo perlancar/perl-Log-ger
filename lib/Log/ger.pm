@@ -208,7 +208,8 @@ try yourself e.g. with L<bencher-code>:
  % bencher-code 'use Log::ger' 'use Log::Any' --startup
 
 B<Fast>. Low null-/stealth-logging overhead, about 1.5x faster than Log::Any, 3x
-faster than Log4perl, and 5x faster than L<Log::Fast>.
+faster than Log4perl, 5x faster than L<Log::Fast>, and ~100x faster than
+L<Log::Dispatch>.
 
 B<Conditional compilation.> There is a plugin to optimize away unneeded logging
 statements, like assertion/conditional compilation, so they have zero runtime
