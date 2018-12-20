@@ -1,3 +1,10 @@
+0.024   2018-12-20 (PERLANCAR)
+
+	- No functional changes.
+
+	- [doc] Mention that Log::ger is ~100x faster than Log::Dispatch.
+
+
 0.023   2017-08-03 (PERLANCAR)
 
         - [Internal] Change the numeric values of level, to accomodate more room
