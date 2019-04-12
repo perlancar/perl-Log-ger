@@ -6,6 +6,9 @@
 
 0.026   2019-04-12 (PERLANCAR)
 
+        - UPDATE 2019-04-13: This version has startup overhead regression. You
+          might want to update to 0.027.
+
 	- Name the generated routines with Sub::Name if available.
 
 	- Remove declaration of unneeded variable $Caller_Depth_Offset.
