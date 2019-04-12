@@ -17,7 +17,6 @@ use vars qw(
                %Levels
                %Level_Aliases
                $Current_Level
-               $Caller_Depth_Offset
                $_logger_is_null
                $_dumper
                %Global_Hooks
