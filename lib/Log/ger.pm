@@ -64,7 +64,6 @@ sub install_routines {
 
     if ($target eq 'package') {
 #IFUNBUILT
-        no strict 'refs';
         no warnings 'redefine';
 #END IFUNBUILT
         for my $r (@$routines) {
@@ -76,7 +75,6 @@ sub install_routines {
         }
     } elsif ($target eq 'object') {
 #IFUNBUILT
-        no strict 'refs';
         no warnings 'redefine';
 #END IFUNBUILT
         my $pkg = ref $target_arg;
