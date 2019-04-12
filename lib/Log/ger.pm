@@ -51,6 +51,12 @@ my $sub0 = sub {0};
 my $sub1 = sub {1};
 my $default_null_routines;
 
+if (eval { require Sub::Name; 1 }) {
+    *subname = \&Sub::Name::subname;
+} else {
+    *subname = sub {};
+}
+
 sub install_routines {
     my ($target, $target_arg, $routines) = @_;
 
@@ -64,6 +70,7 @@ sub install_routines {
             next unless $type =~ /_sub\z/;
             #print "D:installing $name to package $target_arg\n";
             *{"$target_arg\::$name"} = $code;
+            subname("$target_arg\::$name", $code);
         }
     } elsif ($target eq 'object') {
 #IFUNBUILT
@@ -75,6 +82,7 @@ sub install_routines {
             my ($code, $name, $lnum, $type) = @$r;
             next unless $type =~ /_method\z/;
             *{"$pkg\::$name"} = $code;
+            subname("$pkg\::$name", $code);
         }
     } elsif ($target eq 'hash') {
         for my $r (@$routines) {
