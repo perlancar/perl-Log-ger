@@ -197,7 +197,7 @@ sub reinit_target {
 
 sub reinit_all_targets {
     for my $pkg (keys %Log::ger::Package_Targets) {
-        print "reinit package $pkg\n";
+        #print "D:reinit package $pkg\n";
         Log::ger::init_target(
             package => $pkg, $Log::ger::Package_Targets{$pkg});
     }
