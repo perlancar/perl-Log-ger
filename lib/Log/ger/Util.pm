@@ -28,6 +28,7 @@ sub _dump {
                 local $Data::Dumper::Quotekeys = 0;
                 local $Data::Dumper::Sortkeys = 1;
                 local $Data::Dumper::Trailingcomma = 1;
+                local $Data::Dumper::Useqq = 1; # to show "\034", possible bug in Data::Dumper
                 Data::Dumper::Dumper($_[0]);
             };
         } else {
