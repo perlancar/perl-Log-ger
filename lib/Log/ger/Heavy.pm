@@ -17,7 +17,6 @@ use vars qw(
                %Levels
                %Level_Aliases
                $Current_Level
-               $Caller_Depth_Offset
                $_logger_is_null
                $_dumper
                %Global_Hooks
@@ -376,7 +375,7 @@ sub init_target {
                   $target, $target_arg);
     }
 
-    install_routines($target, $target_arg, \@routines);
+    install_routines($target, $target_arg, \@routines, 1);
 
     {
         local $hook_args{routines} = \@routines;

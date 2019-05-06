@@ -1,3 +1,19 @@
+0.027   2019-04-13 (PERLANCAR)
+
+	- Fix startup overhead regression by avoiding to load Sub::Name &
+	  name routines if we don't have any outputs.
+
+
+0.026   2019-04-12 (PERLANCAR)
+
+        - UPDATE 2019-04-13: This version has startup overhead regression. You
+          might want to update to 0.027.
+
+	- Name the generated routines with Sub::Name if available.
+
+	- Remove declaration of unneeded variable $Caller_Depth_Offset.
+
+
 0.025   2018-12-20 (PERLANCAR)
 
 	- No functional changes.
