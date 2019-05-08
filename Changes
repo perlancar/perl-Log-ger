@@ -1,7 +1,6 @@
 0.028   2019-05-06 (PERLANCAR)
 
-	- Use Data::Dumper's Useqq=1 to avoid Data::Dumper bug in not
-	  showing \034.
+	- Use Data::Dumper's Useqq=1 to show unprintable characters.
 
 
 0.027   2019-04-13 (PERLANCAR)
