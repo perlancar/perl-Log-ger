@@ -15,6 +15,7 @@ sub get_hooks {
         create_routine_names => [
             __PACKAGE__, 50,
             sub {
+                my %hook_args = @_;
                 return [{
                     logml_subs    => [[$conf{sub_name}    || 'log', undef]],
                     logml_methods => [[$conf{method_name} || 'log', undef]],

@@ -8,8 +8,11 @@ sub get_hooks {
         create_log_routine => [
             __PACKAGE__, 50,
             sub {
+                my %hook_args = @_;
+
                 $Log::ger::_logger_is_null = 1;
-                [sub {0}];
+                my $logger = sub {0};
+                [$logger];
             }],
     };
 }

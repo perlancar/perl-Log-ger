@@ -15,7 +15,7 @@ sub get_hooks {
         create_log_routine => [
             __PACKAGE__, 50,
             sub {
-                my %args = @_;
+                my %hook_args = @_;
 
                 my $logger = sub {
                     my ($ctx, $msg) = @_;

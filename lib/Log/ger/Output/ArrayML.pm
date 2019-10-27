@@ -17,7 +17,7 @@ sub get_hooks {
         create_logml_routine => [
             __PACKAGE__, 50,
             sub {
-                my %args = @_;
+                my %hook_args = @_;
                 my $logger = sub {
                     my $level = Log::ger::Util::numeric_level($_[1]);
                     return if $level > $Log::ger::Current_Level;

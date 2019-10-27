@@ -6,9 +6,12 @@ package Log::ger::Format::None;
 sub get_hooks {
     return {
         create_formatter => [
-            __PACKAGE__, 50,
-            sub {
-                [sub {shift}];
+            __PACKAGE__, # key
+            50,          # priority
+            sub {        # hook
+                my %hook_args = @_;
+                my $formatter = sub { shift };
+                [$formatter];
             }],
     };
 }
