@@ -50,7 +50,7 @@ our %Default_Hooks = (
                          if (!defined($_)) {
                              push @args, '<undef>';
                          } elsif (ref $_) {
-                             require Log::ger::Util unless $_dumper;
+                             require Log::ger::Util unless $Log::ger::_dumper;
                              push @args, Log::ger::Util::_dump($_);
                          } else {
                              push @args, $_;
