@@ -36,9 +36,9 @@ our %Default_Hooks = (
          sub {
              my %args = @_;
 
-             my $formatter =
-
 # BEGIN_BLOCK: default_formatter
+
+             my $formatter =
 
                  # the default formatter is sprintf-style that dumps data
                  # structures arguments as well as undef as '<undef>'.
