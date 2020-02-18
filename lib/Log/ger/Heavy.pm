@@ -59,9 +59,10 @@ our %Default_Hooks = (
                      sprintf $fmt, @args;
                  };
 
+             [$formatter];
+
 # END_BLOCK: default_formatter
 
-             [$formatter];
          }],
     ],
 
