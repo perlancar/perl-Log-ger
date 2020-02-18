@@ -244,7 +244,7 @@ B<Slim distribution.> No non-core dependencies, extra functionalities are
 provided in separate distributions to be pulled as needed.
 
 B<Low startup overhead.> Only ~0.5-1ms. For comparison, L<strict> ~0.2-0.5ms,
-L<warnings> ~2ms, L<Log::Any> 0.15 ~2-3ms, Log::Any 1.049 ~8-10ms,
+L<warnings> ~2ms, L<Log::Any> (v0.15) ~2-3ms, Log::Any (v1.049) ~8-10ms,
 L<Log::Log4perl> ~35ms. This is measured on a 2014-2015 PC and before doing any
 output configuration. I strive to make C<use Log::ger;> statement to be roughly
 as light as C<use strict;> or C<use warnings;> so the impact of adding the
