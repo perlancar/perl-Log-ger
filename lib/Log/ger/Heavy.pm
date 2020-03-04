@@ -217,17 +217,17 @@ sub init_target {
 
   CREATE_LOG_ROUTINES:
     {
-        my @rn;
+        my @routines_recs;
         if ($target eq 'package') {
-            push @rn, @{ $routine_names->{log_subs} || [] };
-            push @rn, @{ $routine_names->{logml_subs} || [] };
+            push @routines_recs, @{ $routine_names->{log_subs} || [] };
+            push @routines_recs, @{ $routine_names->{logml_subs} || [] };
         } else {
-            push @rn, @{ $routine_names->{log_methods} || [] };
-            push @rn, @{ $routine_names->{logml_methods} || [] };
+            push @routines_recs, @{ $routine_names->{log_methods} || [] };
+            push @routines_recs, @{ $routine_names->{logml_methods} || [] };
         }
         my $mllogger0;
-        for my $rn (@rn) {
-            my ($rname, $lname, $fmtname) = @$rn;
+        for my $routine_rec (@routines_recs) {
+            my ($rname, $lname, $fmtname) = @$routine_rec;
             my $lnum; $lnum = $Levels{$lname} if defined $lname;
             my $routine_name_is_ml = !defined($lname);
             $fmtname = 'default' if !defined($fmtname);
@@ -351,17 +351,17 @@ sub init_target {
     }
   CREATE_IS_ROUTINES:
     {
-        my @rn;
+        my @routines_recs;
         my $type;
         if ($target eq 'package') {
-            push @rn, @{ $routine_names->{is_subs} || [] };
+            push @routines_recs, @{ $routine_names->{is_subs} || [] };
             $type = 'is_sub';
         } else {
-            push @rn, @{ $routine_names->{is_methods} || [] };
+            push @routines_recs, @{ $routine_names->{is_methods} || [] };
             $type = 'is_method';
         }
-        for my $rn (@rn) {
-            my ($rname, $lname) = @$rn;
+        for my $routine_rec (@routines_recs) {
+            my ($rname, $lname) = @$routine_rec;
             my $lnum = $Levels{$lname};
 
             local $hook_args{name} = $rname;
