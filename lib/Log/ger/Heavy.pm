@@ -33,29 +33,37 @@ use vars qw(
 our %Default_Hooks = (
     create_formatter => [
         [__PACKAGE__, 90,
-         # the default formatter is sprintf-style that dumps data structures
-         # arguments as well as undef as '<undef>'.
          sub {
              my %args = @_;
 
-             my $formatter = sub {
-                 return $_[0] if @_ < 2;
-                 my $fmt = shift;
-                 my @args;
-                 for (@_) {
-                     if (!defined($_)) {
-                         push @args, '<undef>';
-                     } elsif (ref $_) {
-                         require Log::ger::Util unless $_dumper;
-                         push @args, Log::ger::Util::_dump($_);
-                     } else {
-                         push @args, $_;
+# BEGIN_BLOCK: default_formatter
+
+             my $formatter =
+
+                 # the default formatter is sprintf-style that dumps data
+                 # structures arguments as well as undef as '<undef>'.
+                 sub {
+                     return $_[0] if @_ < 2;
+                     my $fmt = shift;
+                     my @args;
+                     for (@_) {
+                         if (!defined($_)) {
+                             push @args, '<undef>';
+                         } elsif (ref $_) {
+                             require Log::ger::Util unless $Log::ger::_dumper;
+                             push @args, Log::ger::Util::_dump($_);
+                         } else {
+                             push @args, $_;
+                         }
                      }
-                 }
-                 no warnings 'redundant';
-                 sprintf $fmt, @args;
-             };
+                     no warnings 'redundant';
+                     sprintf $fmt, @args;
+                 };
+
              [$formatter];
+
+# END_BLOCK: default_formatter
+
          }],
     ],
 

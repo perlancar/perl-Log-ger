@@ -1,3 +1,20 @@
+0.030   2020-02-18  Released-By: PERLANCAR; Urgency: low
+
+	- No functional changes.
+
+	- [doc] Tweak Synopsis, at least show how to set level & pick
+	  multiple outputs.
+
+
+0.029   2020-02-18  Released-By: PERLANCAR; Urgency: low
+
+        - No functional changes.
+
+	- [dist] Mark default formatter block using # BEGIN_BLOCK .. # END_BLOCK
+          so it can be extracted by Dist::Zilla plugin
+          [InsertBlock::FromModule].
+
+
 0.028   2019-05-06  Released-By: PERLANCAR
 
 	- Use Data::Dumper's Useqq=1 to show unprintable characters.

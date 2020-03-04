@@ -166,6 +166,8 @@ sub import {
 
 =head1 SYNOPSIS
 
+=head2 Producing logs
+
 In your module (producer):
 
  package Foo;
@@ -173,19 +175,53 @@ In your module (producer):
 
  sub foo {
      ...
-     # produce some logs
-     log_error "an error occurred: %03d - %s", $errcode, $errmsg;
+     # produce some logs. no need to configure output or level.
+     log_error "an error occured: %03d - %s", $errcode, $errmsg;
      ...
      log_debug "http response: %s", $http; # automatic dumping of data
  }
  1;
 
+=head2 Consuming logs
+
+=head3 Choosing an output
+
 In your application (consumer/listener):
 
  use Foo;
- use Log::ger::Output 'Screen';
+ use Log::ger::Output 'Screen'; # configure output
+ # level is by default 'warn'
+ foo(); # the error message is shown, but debug message is not.
 
- foo();
+=head3 Choosing multiple outputs
+
+Instead of screen, you can output to multiple outputs (including multiple
+files):
+
+ use Log::ger::Output 'Composite' => (
+     outputs => {
+         Screen => {},
+         File   => [
+             {conf=>{path=>'/path/to/app.log'}},
+             ...
+         ],
+         ...
+     },
+ );
+
+See L<Log::ger::Manual::Tutorial::481_Output_Composite> for more examples.
+
+=head3 Choosing level
+
+One way to set level:
+
+ use Log::ger::Util;
+ Log::ger::Util::set_level('debug'); # be more verbose
+ foo(); # the error message as well as debug message are now shown
+
+There are better ways, e.g. letting users configure log level via configuration
+file or command-line option. See L<Log::ger::Manual::Tutorial::300_Level> for
+more details.
 
 
 =head1 DESCRIPTION
@@ -208,7 +244,7 @@ B<Slim distribution.> No non-core dependencies, extra functionalities are
 provided in separate distributions to be pulled as needed.
 
 B<Low startup overhead.> Only ~0.5-1ms. For comparison, L<strict> ~0.2-0.5ms,
-L<warnings> ~2ms, L<Log::Any> 0.15 ~2-3ms, Log::Any 1.049 ~8-10ms,
+L<warnings> ~2ms, L<Log::Any> (v0.15) ~2-3ms, Log::Any (v1.049) ~8-10ms,
 L<Log::Log4perl> ~35ms. This is measured on a 2014-2015 PC and before doing any
 output configuration. I strive to make C<use Log::ger;> statement to be roughly
 as light as C<use strict;> or C<use warnings;> so the impact of adding the
