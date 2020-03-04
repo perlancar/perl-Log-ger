@@ -94,20 +94,20 @@ sub install_routines {
 }
 
 sub add_target {
-    my ($target, $target_arg, $args, $replace) = @_;
+    my ($target, $target_arg, $init_args, $replace) = @_;
     $replace = 1 unless defined $replace;
 
     if ($target eq 'package') {
         unless ($replace) { return if $Package_Targets{$target_arg} }
-        $Package_Targets{$target_arg} = $args;
+        $Package_Targets{$target_arg} = $init_args;
     } elsif ($target eq 'object') {
         my ($addr) = "$target_arg" =~ $re_addr;
         unless ($replace) { return if $Object_Targets{$addr} }
-        $Object_Targets{$addr} = [$target_arg, $args];
+        $Object_Targets{$addr} = [$target_arg, $init_args];
     } elsif ($target eq 'hash') {
         my ($addr) = "$target_arg" =~ $re_addr;
         unless ($replace) { return if $Hash_Targets{$addr} }
-        $Hash_Targets{$addr} = [$target_arg, $args];
+        $Hash_Targets{$addr} = [$target_arg, $init_args];
     }
 }
 
@@ -123,16 +123,16 @@ sub _set_default_null_routines {
 }
 
 sub get_logger {
-    my ($package, %args) = @_;
+    my ($package, %init_args) = @_;
 
     my $caller = caller(0);
-    $args{category} = $caller if !defined($args{category});
+    $init_args{category} = $caller if !defined($init_args{category});
     my $obj = []; $obj =~ $re_addr;
     my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
-    add_target(object => $obj, \%args);
+    add_target(object => $obj, \%init_args);
     if (keys %Global_Hooks) {
         require Log::ger::Heavy;
-        init_target(object => $obj, \%args);
+        init_target(object => $obj, \%init_args);
     } else {
         # if we haven't added any hooks etc, skip init_target() process and use
         # this preconstructed routines as shortcut, to save startup overhead
@@ -143,14 +143,14 @@ sub get_logger {
 }
 
 sub import {
-    my ($package, %args) = @_;
+    my ($package, %init_args) = @_;
 
     my $caller = caller(0);
-    $args{category} = $caller if !defined($args{category});
-    add_target(package => $caller, \%args);
+    $init_args{category} = $caller if !defined($init_args{category});
+    add_target(package => $caller, \%init_args);
     if (keys %Global_Hooks) {
         require Log::ger::Heavy;
-        init_target(package => $caller, \%args);
+        init_target(package => $caller, \%init_args);
     } else {
         # if we haven't added any hooks etc, skip init_target() process and use
         # this preconstructed routines as shortcut, to save startup overhead
