@@ -52,6 +52,7 @@ our %Default_Hooks = (
                          push @args, $_;
                      }
                  }
+                 no warnings 'redundant';
                  sprintf $fmt, @args;
              };
              [$formatter];
