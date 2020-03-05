@@ -1,6 +1,8 @@
 package Log::ger::Util;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use strict;

@@ -1,6 +1,8 @@
 package Log::ger::Plugin::MultilevelLog;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use strict;
@@ -13,9 +15,10 @@ sub get_hooks {
 
     return {
         create_routine_names => [
-            __PACKAGE__, 50,
-            sub {
-                my %hook_args = @_;
+            __PACKAGE__, # key
+            50,          # priority
+            sub {        # hook
+                my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
                 return [{
                     logml_subs    => [[$conf{sub_name}    || 'log', undef]],
                     logml_methods => [[$conf{method_name} || 'log', undef]],
@@ -74,3 +77,8 @@ still installed.
 =head2 sub_name => str (default: "log")
 
 =head2 method_name => str (default: "log")
+
+
+=head1 SEE ALSO
+
+L<Log::ger::Plugin::HashArgs>

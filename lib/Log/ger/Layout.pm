@@ -1,11 +1,13 @@
 package Log::ger::Layout;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use parent qw(Log::ger::Plugin);
 
-# we only use one output, so set() should replace all hooks from previously set
+# we only use one layout, so set() should replace all hooks from previously set
 # plugin package
 sub _replace_package_regex { qr/\ALog::ger::Layout::/ }
 

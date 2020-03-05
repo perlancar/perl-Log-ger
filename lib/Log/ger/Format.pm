@@ -1,6 +1,8 @@
 package Log::ger::Format;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use parent qw(Log::ger::Plugin);
@@ -42,3 +44,5 @@ L<Log::ger::Layout>
 L<Log::ger::Output>
 
 L<Log::ger::Plugin>
+
+L<Log::ger::Filter>

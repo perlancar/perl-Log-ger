@@ -1,6 +1,8 @@
 package Log::ger::Plugin;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use strict;
@@ -83,3 +85,5 @@ L<Log::ger::Format>
 L<Log::ger::Layout>
 
 L<Log::ger::Output>
+
+L<Log::ger::Filter>

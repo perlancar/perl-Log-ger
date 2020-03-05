@@ -1,6 +1,8 @@
 package Log::ger::Output;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use parent 'Log::ger::Plugin';
@@ -47,3 +49,5 @@ L<Log::ger::Format>
 L<Log::ger::Layout>
 
 L<Log::ger::Plugin>
+
+L<Log::ger::Filter>

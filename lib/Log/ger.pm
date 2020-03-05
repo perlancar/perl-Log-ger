@@ -1,6 +1,8 @@
 package Log::ger;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 #IFUNBUILT

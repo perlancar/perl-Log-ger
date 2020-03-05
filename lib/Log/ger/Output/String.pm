@@ -1,6 +1,8 @@
 package Log::ger::Output::String;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use strict;
@@ -17,9 +19,10 @@ sub get_hooks {
 
     return {
         create_log_routine => [
-            __PACKAGE__, 50,
-            sub {
-                my %hook_args = @_;
+            __PACKAGE__, # key
+            50,          # priority
+            sub {        # hook
+                my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
                 my $level = $hook_args{level};
                 my $logger = sub {
                     my $msg = $_[1];
