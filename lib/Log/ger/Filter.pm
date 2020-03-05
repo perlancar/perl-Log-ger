@@ -7,10 +7,6 @@ package Log::ger::Filter;
 
 use parent qw(Log::ger::Plugin);
 
-# we only use one filter, so set() should replace all hooks from previously set
-# plugin package
-sub _replace_package_regex { qr/\ALog::ger::Filter::/ }
-
 1;
 # ABSTRACT: Use a filter plugin
 
@@ -21,16 +17,16 @@ sub _replace_package_regex { qr/\ALog::ger::Filter::/ }
 To set globally:
 
  use Log::ger::Filter;
- Log::ger::Filter->set('Foo');
+ Log::ger::Filter->set('Code', code => sub{ ... });
 
 or:
 
- use Log::ger::Filter 'Foo';
+ use Log::ger::Filter 'Code', (code => sub { ... });
 
 To set for current package only:
 
  use Log::ger::Filter;
- Log::ger::Filter->set_for_current_package('Foo');
+ Log::ger::Filter->set_for_current_package('Code', code => sub { ... });
 
 
 =head1 SEE ALSO

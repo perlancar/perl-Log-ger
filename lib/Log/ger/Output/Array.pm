@@ -21,7 +21,7 @@ sub get_hooks {
                 my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
 
                 my $logger = sub {
-                    my ($ctx, $msg) = @_;
+                    my ($init_args, $msg, $meta) = @_;
                     push @{$conf{array}}, $msg;
                 };
                 [$logger];

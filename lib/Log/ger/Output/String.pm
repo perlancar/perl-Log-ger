@@ -25,7 +25,7 @@ sub get_hooks {
                 my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
                 my $level = $hook_args{level};
                 my $logger = sub {
-                    my $msg = $_[1];
+                    my ($init_args, $msg, $meta) = @_;
                     if ($formatter) {
                         $msg = $formatter->($msg);
                     }

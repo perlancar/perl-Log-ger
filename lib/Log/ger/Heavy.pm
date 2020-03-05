@@ -96,7 +96,7 @@ our %Default_Hooks = (
         [__PACKAGE__, 10,
          # the default behavior is to create a null routine for levels that are
          # too high than the global level ($Current_Level). since we run at high
-         # priority (10), this block typical output plugins at normal priority
+         # priority (10), we block typical output plugins at normal priority
          # (50). this is a convenience so normally a plugin does not have to
          # deal with level checking.
          sub {
@@ -110,11 +110,9 @@ our %Default_Hooks = (
                  $_logger_is_null = 1;
                  return [sub {0}];
              }
-             [undef]; # decline
+             [undef]; # decline, let output plugin supply logger routines
          }],
     ],
-
-    create_logml_routine => [],
 
     create_is_routine => [
         [__PACKAGE__, 90,
@@ -186,8 +184,18 @@ sub init_target {
     );
 
     # collect only a single filter
-    my $filter =
-        run_hooks('create_filter', \%hook_args, 1, $target, $target_arg);
+    my %filters;
+    run_hooks(
+        'create_filter', \%hook_args,
+        # collect filters, until a hook instructs to stop
+        sub {
+            my ($hook, $hook_res) = @_;
+            my ($filter, $flow_control, $fltname) = @$hook_res;
+            $fltname = 'default' if !defined($fltname);
+            $filters{$fltname} ||= $filter;
+            $flow_control;
+        },
+        $target, $target_arg);
 
     my %formatters;
     run_hooks(
@@ -212,10 +220,10 @@ sub init_target {
         # collect routine names, until a hook instructs to stop.
         sub {
             my ($hook, $hook_res) = @_;
-            my ($routine_rec, $flow_control) = @$hook_res;
-            $routine_rec or return;
-            for (keys %$routine_rec) {
-                push @{ $routine_names->{$_} }, @{ $routine_rec->{$_} };
+            my ($routine_name_rec, $flow_control) = @$hook_res;
+            $routine_name_rec or return;
+            for (keys %$routine_name_rec) {
+                push @{ $routine_names->{$_} }, @{ $routine_name_rec->{$_} };
             }
             $flow_control;
         },
@@ -226,137 +234,74 @@ sub init_target {
 
   CREATE_LOG_ROUTINES:
     {
-        my @routines_recs;
+        my @routine_name_recs;
         if ($target eq 'package') {
-            push @routines_recs, @{ $routine_names->{log_subs} || [] };
-            push @routines_recs, @{ $routine_names->{logml_subs} || [] };
+            push @routine_name_recs, @{ $routine_names->{log_subs} || [] };
         } else {
-            push @routines_recs, @{ $routine_names->{log_methods} || [] };
-            push @routines_recs, @{ $routine_names->{logml_methods} || [] };
+            push @routine_name_recs, @{ $routine_names->{log_methods} || [] };
         }
-        my $mllogger0;
-        for my $routine_rec (@routines_recs) {
-            my ($rname, $lname, $fmtname, $rinit_args) = @$routine_rec;
+        for my $routine_name_rec (@routine_name_recs) {
+            my ($rname, $lname, $fmtname, $rinit_args, $fltname)
+                = @$routine_name_rec;
             my $lnum; $lnum = $Levels{$lname} if defined $lname;
-            my $routine_name_is_ml = !defined($lname);
             $fmtname = 'default' if !defined($fmtname);
 
-            my $logger;
-            my ($logger0, $logger0_is_ml);
+            my ($logger0, $logger);
             $_logger_is_null = 0;
-            for my $phase (qw/create_logml_routine create_log_routine/) {
-                local $hook_args{name} = $rname;
-                local $hook_args{level} = $lnum;
-                local $hook_args{str_level} = $lname;
-                $logger0_is_ml = $phase eq 'create_logml_routine';
-                if ($mllogger0) {
-                    # we reuse the same multilevel logger0 for all log routines,
-                    # since it can handle different levels
-                    $logger0 = $mllogger0;
-                    last;
-                }
-                $logger0 = run_hooks(
-                    $phase, \%hook_args, 1, $target, $target_arg)
-                    or next;
-                if ($logger0_is_ml) {
-                    $mllogger0 = $logger0;
-                }
-                last;
-            }
-            # this can happen if there is no create_logml_routine hook but
-            # routine name is a logml routine
-            unless ($logger0) {
-                $_logger_is_null = 1;
-                $logger0 = sub {0};
-            }
-
-            require Log::ger::Util if !$logger0_is_ml && $routine_name_is_ml;
+            local $hook_args{name} = $rname;
+            local $hook_args{level} = $lnum;
+            local $hook_args{str_level} = $lname;
+            $logger0 = run_hooks(
+                "create_log_routine", \%hook_args, 1, $target, $target_arg)
+                or next;
 
             { # enclosing block
                 if ($_logger_is_null) {
                     # if logger is a null logger (sub {0}) we don't need to
                     # format message, layout message, or care about the logger
-                    # being a subroutine/object
+                    # being a subroutine/object. shortcut here for faster init.
                     $logger = $logger0;
                     last;
                 }
 
-                my $formatter = $formatters{$fmtname}
-                    or die "Formatter named '$fmtname' not available";
-                # zoom out to see vertical alignments...
-                # we have filter(x2) x formatter+layouter(x3) x logger_is_ml(x2)
-                # x routine_name_is_ml(x2) x OO/non-OO (x2) = 48 permutations!
-                # we create specialized subroutines for each case, for
-                # performance reason.
-                if ($filter) { if ($formatter) { if ($layouter) { if ($logger0_is_ml) { if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; my $lnum=shift;                                                    return 0 unless $filter->(@_); my $lname = Log::ger::Util::string_level($lnum);   $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           # has-filter has-formatter has-layouter logger-is-ml   routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        my $lnum=shift;                                                    return 0 unless $filter->(@_); my $lname = Log::ger::Util::string_level($lnum);   $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }         # has-filter has-formatter has-layouter logger-is-ml   routine-name-is-ml    not-oo
-                                                                                        } else {                   if ($object) { $logger = sub { shift;                                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           # has-filter has-formatter has-layouter logger-is-ml   routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                           return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; } }       # has-filter has-formatter has-layouter logger-is-ml   routine-name-isnt-ml  not-oo
-                                                                  } else {              if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level; return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           # has-filter has-formatter has-layouter logger-isnt-ml routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level; return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }         # has-filter has-formatter has-layouter logger-isnt-ml routine-name-is-ml    not-oo
-                                                                                        } else {                   if ($object) { $logger = sub { shift;                                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           # has-filter has-formatter has-layouter logger-isnt-ml routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                           return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; } } }     # has-filter has-formatter has-layouter logger-isnt-ml routine-name-isnt-ml  not-oo
-                                               } else {           if ($logger0_is_ml) { if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; my $lnum=shift;                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) };           # has-filter has-formatter  no-layouter logger-is-ml   routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        my $lnum=shift;                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) }; }         # has-filter has-formatter  no-layouter logger-is-ml   routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) };           # has-filter has-formatter  no-layouter logger-is-ml   routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                           return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) }; } }       # has-filter has-formatter  no-layouter logger-is-ml   routine-name-isnt-ml  not-oo
-                                                                  } else {              if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level; return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) };           # has-filter has-formatter  no-layouter logger-isnt-ml routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level; return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) }; }         # has-filter has-formatter  no-layouter logger-isnt-ml routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) };           # has-filter has-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                           return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) }; } } } }   # has-filter has-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml  not-oo
-                               } else {                           if ($logger0_is_ml) { if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; my $lnum=shift;                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) };           # has-filter  no-formatter  no-layouter logger-is-ml   routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        my $lnum=shift;                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) }; }         # has-filter  no-formatter  no-layouter logger-is-ml   routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) };           # has-filter  no-formatter  no-layouter logger-is-ml   routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                           return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) }; } }       # has-filter  no-formatter  no-layouter logger-is-ml   routine-name-isnt-ml  not-oo
-                                                                  } else {              if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level; return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                                 @_                             ) };           # has-filter  no-formatter  no-layouter logger-isnt-ml routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level; return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                                 @_                             ) }; }         # has-filter  no-formatter  no-layouter logger-isnt-ml routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                    return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                                 @_                             ) };           # has-filter  no-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                           return 0 unless $filter->(@_);                                                    $logger0->($rinit_args || $init_args,                                 @_                             ) }; } } } }   # has-filter  no-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml  not-oo
-                } else {       if ($formatter) { if ($layouter) { if ($logger0_is_ml) { if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; my $lnum=shift;                                                                                   my $lname = Log::ger::Util::string_level($lnum);   $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           #  no-filter has-formatter has-layouter logger-is-ml   routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        my $lnum=shift;                                                                                   my $lname = Log::ger::Util::string_level($lnum);   $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }         #  no-filter has-formatter has-layouter logger-is-ml   routine-name-is-ml    not-oo
-                                                                                        } else {                   if ($object) { $logger = sub { shift;                                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           #  no-filter has-formatter has-layouter logger-is-ml   routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                                                                                                             $logger0->($rinit_args || $init_args, $lnum, $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; } }       #  no-filter has-formatter has-layouter logger-is-ml   routine-name-isnt-ml  not-oo
-                                                                  } else {              if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;                                                                                   $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           #  no-filter has-formatter has-layouter logger-isnt-ml routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;                                                                                   $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; }         #  no-filter has-formatter has-layouter logger-isnt-ml routine-name-is-ml    not-oo
-                                                                                        } else {                   if ($object) { $logger = sub { shift;                                                                                                                                                      $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) };           #  no-filter has-formatter has-layouter logger-isnt-ml routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                                                                                                             $logger0->($rinit_args || $init_args,        $layouter->($formatter->(@_), $init_args, $lnum, $lname)) }; } } }     #  no-filter has-formatter has-layouter logger-isnt-ml routine-name-isnt-ml  not-oo
-                                               } else {           if ($logger0_is_ml) { if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; my $lnum=shift;                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) };           #  no-filter has-formatter  no-layouter logger-is-ml   routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        my $lnum=shift;                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) }; }         #  no-filter has-formatter  no-layouter logger-is-ml   routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) };           #  no-filter has-formatter  no-layouter logger-is-ml   routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                                                                                                             $logger0->($rinit_args || $init_args, $lnum,             $formatter->(@_)                            ) }; } }       #  no-filter has-formatter  no-layouter logger-is-ml   routine-name-isnt-ml  not-oo
-                                                                  } else {              if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;                                                                                   $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) };           #  no-filter has-formatter  no-layouter logger-isnt-ml routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;                                                                                   $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) }; }         #  no-filter has-formatter  no-layouter logger-isnt-ml routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                                                                                                      $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) };           #  no-filter has-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                                                                                                             $logger0->($rinit_args || $init_args,                    $formatter->(@_)                            ) }; } } } }   #  no-filter has-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml  not-oo
-                               } else {                           if ($logger0_is_ml) { if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; my $lnum=shift;                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) };           #  no-filter  no-formatter  no-layouter logger-is-ml   routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        my $lnum=shift;                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) }; }         #  no-filter  no-formatter  no-layouter logger-is-ml   routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                                                                                                      $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) };           #  no-filter  no-formatter  no-layouter logger-is-ml   routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                                                                                                             $logger0->($rinit_args || $init_args, $lnum,                          @_                             ) }; } }       #  no-filter  no-formatter  no-layouter logger-is-ml   routine-name-isnt-ml  not-oo
-                                                                  } else {              if ($routine_name_is_ml) { if ($object) { $logger = sub { shift; return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;                                                                                   $logger0->($rinit_args || $init_args,                                 @_                             ) };           #  no-filter  no-formatter  no-layouter logger-isnt-ml routine-name-is-ml   with-oo
-                                                                                                                   } else {       $logger = sub {        return 0 if Log::ger::Util::numeric_level(shift) > $Current_Level;                                                                                   $logger0->($rinit_args || $init_args,                                 @_                             ) }; }         #  no-filter  no-formatter  no-layouter logger-isnt-ml routine-name-is-ml    not-oo
-                                                                                       } else {                    if ($object) { $logger = sub { shift;                                                                                                                                                      $logger0->($rinit_args || $init_args,                                 @_                             ) };           #  no-filter  no-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml with-oo
-                                                                                                                   } else {       $logger = sub {                                                                                                                                                             $logger0->($rinit_args || $init_args,                                 @_                             ) }; } } } } } #  no-filter  no-formatter  no-layouter logger-isnt-ml routine-name-isnt-ml  not-oo
+                my $formatter = $formatters{$fmtname};
+                my $filter    = defined($fltname) ? $filters{$fltname} : undef;
+
+                # zoom out to see vertical alignments... we have filter(x2) x
+                # formatter+layouter(x3) x OO/non-OO (x2) = 12 permutations. we
+                # create specialized subroutines for each case, for performance
+                # reason.
+                if ($filter) { if ($formatter) { if ($layouter) { if ($object) { $logger = sub { shift; return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname, $meta), $meta) };       # has-filter has-formatter has-layouter with-oo
+                                                                  } else {       $logger = sub {        return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname, $meta), $meta) }; }     # has-filter has-formatter has-layouter  not-oo
+                                                 } else {         if ($object) { $logger = sub { shift; return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,             $formatter->(@_)                                   , $meta) };       # has-filter has-formatter  no-layouter with-oo
+                                                                  } else {       $logger = sub {        return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,             $formatter->(@_)                                   , $meta) }; } }   # has-filter has-formatter  no-layouter  not-oo
+                               } else {                           if ($object) { $logger = sub { shift; return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,                         \@_                                    , $meta) };       # has-filter  no-formatter  no-layouter with-oo
+                                                                  } else {       $logger = sub {        return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,                         \@_                                    , $meta) }; } }   # has-filter  no-formatter  no-layouter  not-oo
+                } else {       if ($formatter) { if ($layouter) { if ($object) { $logger = sub { shift;                                           $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname       )       ) };       #  no-filter has-formatter has-layouter with-oo
+                                                                  } else {       $logger = sub {                                                  $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname       )       ) }; }     #  no-filter has-formatter has-layouter  not-oo
+                                               } else {           if ($object) { $logger = sub { shift;                                           $logger0->($rinit_args || $init_args,             $formatter->(@_)                                          ) };       #  no-filter has-formatter  no-layouter with-oo
+                                                                  } else {       $logger = sub {                                                  $logger0->($rinit_args || $init_args,             $formatter->(@_)                                          ) }; } }   #  no-filter has-formatter  no-layouter  not-oo
+                               } else {                           if ($object) { $logger = sub { shift;                                           $logger0->($rinit_args || $init_args,                         \@_                                           ) };       #  no-filter  no-formatter  no-layouter with-oo
+                                                                  } else {       $logger = sub {                                                  $logger0->($rinit_args || $init_args,                         \@_                                           ) }; } } } #  no-filter  no-formatter  no-layouter  not-oo
             } # enclosing block
           L1:
-            my $type = $routine_name_is_ml ?
-                ($object ? 'logml_method' : 'logml_sub') :
-                ($object ? 'log_method' : 'log_sub');
+            my $type = $object ? 'log_method' : 'log_sub';
             push @routines, [$logger, $rname, $lnum, $type, $rinit_args||$init_args];
         }
     }
   CREATE_IS_ROUTINES:
     {
-        my @routines_recs;
+        my @routine_name_recs;
         my $type;
         if ($target eq 'package') {
-            push @routines_recs, @{ $routine_names->{is_subs} || [] };
+            push @routine_name_recs, @{ $routine_names->{is_subs} || [] };
             $type = 'is_sub';
         } else {
-            push @routines_recs, @{ $routine_names->{is_methods} || [] };
+            push @routine_name_recs, @{ $routine_names->{is_methods} || [] };
             $type = 'is_method';
         }
-        for my $routine_rec (@routines_recs) {
-            my ($rname, $lname) = @$routine_rec;
+        for my $routine_name_rec (@routine_name_recs) {
+            my ($rname, $lname) = @$routine_name_rec;
             my $lnum = $Levels{$lname};
 
             local $hook_args{name} = $rname;
@@ -373,6 +318,7 @@ sub init_target {
 
     {
         local $hook_args{routines} = \@routines;
+        local $hook_args{filters} = \%filters;
         local $hook_args{formatters} = \%formatters;
         local $hook_args{layouter} = $layouter;
         run_hooks('before_install_routines', \%hook_args, 0,
