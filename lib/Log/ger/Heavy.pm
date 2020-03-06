@@ -98,7 +98,8 @@ our %Default_Hooks = (
          # too high than the global level ($Current_Level). since we run at high
          # priority (10), we block typical output plugins at normal priority
          # (50). this is a convenience so normally a plugin does not have to
-         # deal with level checking.
+         # deal with level checking. plugins that want to do its own level
+         # checking can use a higher priority.
          sub {
              my %args = @_;
              my $level = $args{level};
@@ -140,19 +141,19 @@ for my $phase (keys %Default_Hooks) {
 # ($hook, $hook_res) and can return 1 to mean stop.
 sub run_hooks {
     my ($phase, $hook_args, $flow_control,
-        $target, $target_arg) = @_;
+        $target_type, $target_name) = @_;
     #print "D: running hooks for phase $phase\n";
 
     $Global_Hooks{$phase} or die "Unknown phase '$phase'";
     my @hooks = @{ $Global_Hooks{$phase} };
 
-    if ($target eq 'package') {
-        unshift @hooks, @{ $Per_Package_Hooks{$target_arg}{$phase} || [] };
-    } elsif ($target eq 'hash') {
-        my ($addr) = "$target_arg" =~ $re_addr;
+    if ($target_type eq 'package') {
+        unshift @hooks, @{ $Per_Package_Hooks{$target_name}{$phase} || [] };
+    } elsif ($target_type eq 'hash') {
+        my ($addr) = "$target_name" =~ $re_addr;
         unshift @hooks, @{ $Per_Hash_Hooks{$addr}{$phase} || [] };
-    } elsif ($target eq 'object') {
-        my ($addr) = "$target_arg" =~ $re_addr;
+    } elsif ($target_type eq 'object') {
+        my ($addr) = "$target_name" =~ $re_addr;
         unshift @hooks, @{ $Per_Object_Hooks{$addr}{$phase} || [] };
     }
 
@@ -174,13 +175,13 @@ sub run_hooks {
 }
 
 sub init_target {
-    my ($target, $target_arg, $init_args) = @_;
+    my ($target_type, $target_name, $per_target_conf) = @_;
 
-    #print "D:init_target($target, $target_arg, ...)\n";
+    #print "D:init_target($target_type, $target_name, ...)\n";
     my %hook_args = (
-        target     => $target,
-        target_arg => $target_arg,
-        init_args  => $init_args,
+        target_type     => $target_type,
+        target_name     => $target_name,
+        per_target_conf => $per_target_conf,
     );
 
     # collect only a single filter
@@ -195,7 +196,7 @@ sub init_target {
             $filters{$fltname} ||= $filter;
             $flow_control;
         },
-        $target, $target_arg);
+        $target_type, $target_name);
 
     my %formatters;
     run_hooks(
@@ -208,11 +209,12 @@ sub init_target {
             $formatters{$fmtname} ||= $formatter;
             $flow_control;
         },
-        $target, $target_arg);
+        $target_type, $target_name);
 
     # collect only a single layouter
     my $layouter =
-        run_hooks('create_layouter', \%hook_args, 1, $target, $target_arg);
+        run_hooks(
+            'create_layouter', \%hook_args, 1, $target_type, $target_name);
 
     my $routine_names = {};
     run_hooks(
@@ -227,21 +229,21 @@ sub init_target {
             }
             $flow_control;
         },
-        $target, $target_arg);
+        $target_type, $target_name);
 
     my @routines;
-    my $object = $target eq 'object';
+    my $is_object = $target_type eq 'object';
 
   CREATE_LOG_ROUTINES:
     {
         my @routine_name_recs;
-        if ($target eq 'package') {
+        if ($target_type eq 'package') {
             push @routine_name_recs, @{ $routine_names->{log_subs} || [] };
         } else {
             push @routine_name_recs, @{ $routine_names->{log_methods} || [] };
         }
         for my $routine_name_rec (@routine_name_recs) {
-            my ($rname, $lname, $fmtname, $rinit_args, $fltname)
+            my ($rname, $lname, $fmtname, $rper_target_conf, $fltname)
                 = @$routine_name_rec;
             my $lnum; $lnum = $Levels{$lname} if defined $lname;
             $fmtname = 'default' if !defined($fmtname);
@@ -252,7 +254,8 @@ sub init_target {
             local $hook_args{level} = $lnum;
             local $hook_args{str_level} = $lname;
             $logger0 = run_hooks(
-                "create_log_routine", \%hook_args, 1, $target, $target_arg)
+                "create_log_routine", \%hook_args, 1,
+                $target_type, $target_name)
                 or next;
 
             { # enclosing block
@@ -271,22 +274,22 @@ sub init_target {
                 # formatter+layouter(x3) x OO/non-OO (x2) = 12 permutations. we
                 # create specialized subroutines for each case, for performance
                 # reason.
-                if ($filter) { if ($formatter) { if ($layouter) { if ($object) { $logger = sub { shift; return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname, $meta), $meta) };       # has-filter has-formatter has-layouter with-oo
-                                                                  } else {       $logger = sub {        return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname, $meta), $meta) }; }     # has-filter has-formatter has-layouter  not-oo
-                                                 } else {         if ($object) { $logger = sub { shift; return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,             $formatter->(@_)                                   , $meta) };       # has-filter has-formatter  no-layouter with-oo
-                                                                  } else {       $logger = sub {        return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,             $formatter->(@_)                                   , $meta) }; } }   # has-filter has-formatter  no-layouter  not-oo
-                               } else {                           if ($object) { $logger = sub { shift; return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,                         \@_                                    , $meta) };       # has-filter  no-formatter  no-layouter with-oo
-                                                                  } else {       $logger = sub {        return 0 unless my $meta = $filter->(@_); $logger0->($rinit_args || $init_args,                         \@_                                    , $meta) }; } }   # has-filter  no-formatter  no-layouter  not-oo
-                } else {       if ($formatter) { if ($layouter) { if ($object) { $logger = sub { shift;                                           $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname       )       ) };       #  no-filter has-formatter has-layouter with-oo
-                                                                  } else {       $logger = sub {                                                  $logger0->($rinit_args || $init_args, $layouter->($formatter->(@_), $init_args, $lnum, $lname       )       ) }; }     #  no-filter has-formatter has-layouter  not-oo
-                                               } else {           if ($object) { $logger = sub { shift;                                           $logger0->($rinit_args || $init_args,             $formatter->(@_)                                          ) };       #  no-filter has-formatter  no-layouter with-oo
-                                                                  } else {       $logger = sub {                                                  $logger0->($rinit_args || $init_args,             $formatter->(@_)                                          ) }; } }   #  no-filter has-formatter  no-layouter  not-oo
-                               } else {                           if ($object) { $logger = sub { shift;                                           $logger0->($rinit_args || $init_args,                         \@_                                           ) };       #  no-filter  no-formatter  no-layouter with-oo
-                                                                  } else {       $logger = sub {                                                  $logger0->($rinit_args || $init_args,                         \@_                                           ) }; } } } #  no-filter  no-formatter  no-layouter  not-oo
+                if ($filter) { if ($formatter) { if ($layouter) { if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname, $per_msg_conf), $per_msg_conf) };       # has-filter has-formatter has-layouter with-oo
+                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname, $per_msg_conf), $per_msg_conf) }; }     # has-filter has-formatter has-layouter  not-oo
+                                                 } else {         if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_),                                                  $per_msg_conf) };       # has-filter has-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_),                                                  $per_msg_conf) }; } }   # has-filter has-formatter  no-layouter  not-oo
+                               } else {                           if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,                         \@_,                                                   $per_msg_conf) };       # has-filter  no-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,                         \@_,                                                   $per_msg_conf) }; } }   # has-filter  no-formatter  no-layouter  not-oo
+                } else {       if ($formatter) { if ($layouter) { if ($is_object) { $logger = sub { shift;                                                   $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname               )               ) };       #  no-filter has-formatter has-layouter with-oo
+                                                                  } else {          $logger = sub {                                                          $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname               )               ) }; }     #  no-filter has-formatter has-layouter  not-oo
+                                               } else {           if ($is_object) { $logger = sub { shift;                                                   $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_)                                                                ) };       #  no-filter has-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {                                                          $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_)                                                                ) }; } }   #  no-filter has-formatter  no-layouter  not-oo
+                               } else {                           if ($is_object) { $logger = sub { shift;                                                   $logger0->($rper_target_conf || $per_target_conf,                         \@_                                                                 ) };       #  no-filter  no-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {                                                          $logger0->($rper_target_conf || $per_target_conf,                         \@_                                                                 ) }; } } } #  no-filter  no-formatter  no-layouter  not-oo
             } # enclosing block
           L1:
-            my $type = $object ? 'log_method' : 'log_sub';
-            push @routines, [$logger, $rname, $lnum, $type, $rinit_args||$init_args];
+            my $rtype = $is_object ? 'log_method' : 'log_sub';
+            push @routines, [$logger, $rname, $lnum, $rtype, $rper_target_conf||$per_target_conf];
         }
     }
 
@@ -294,7 +297,7 @@ sub init_target {
     {
         my @routine_name_recs;
         my $type;
-        if ($target eq 'package') {
+        if ($target_type eq 'package') {
             push @routine_name_recs, @{ $routine_names->{is_subs} || [] };
             $type = 'is_sub';
         } else {
@@ -311,9 +314,9 @@ sub init_target {
 
             my $code_is =
                 run_hooks('create_is_routine', \%hook_args, 1,
-                          $target, $target_arg);
+                          $target_type, $target_name);
             next unless $code_is;
-            push @routines, [$code_is, $rname, $lnum, $type, $init_args];
+            push @routines, [$code_is, $rname, $lnum, $type, $per_target_conf];
         }
     }
 
@@ -323,15 +326,15 @@ sub init_target {
         local $hook_args{formatters} = \%formatters;
         local $hook_args{layouter} = $layouter;
         run_hooks('before_install_routines', \%hook_args, 0,
-                  $target, $target_arg);
+                  $target_type, $target_name);
     }
 
-    install_routines($target, $target_arg, \@routines, 1);
+    install_routines($target_type, $target_name, \@routines, 1);
 
     {
         local $hook_args{routines} = \@routines;
         run_hooks('after_install_routines', \%hook_args, 0,
-                  $target, $target_arg);
+                  $target_type, $target_name);
     }
 }
 

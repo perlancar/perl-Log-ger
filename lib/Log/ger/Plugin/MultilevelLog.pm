@@ -89,6 +89,7 @@ sub get_hooks {
  use Log::ger::Plugin MultilevelLog => (
      # sub_name => 'log_it',    # optional, defaults to 'log'
      # method_name => 'log_it', # optional, defaults to 'log'
+     # exclusive => 1,          # optional, defaults to 0
  );
  use Log::ger;
 

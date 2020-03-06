@@ -40,13 +40,13 @@ our %Global_Hooks;
 # in Log/ger/Heavy.pm
 # our %Default_Hooks = (
 
-our %Package_Targets; # key = package name, value = \%init_args
+our %Package_Targets; # key = package name, value = \%per_target_conf
 our %Per_Package_Hooks; # key = package name, value = { phase => hooks, ... }
 
-our %Hash_Targets; # key = hash address, value = [$hashref, \%init_args]
+our %Hash_Targets; # key = hash address, value = [$hashref, \%per_target_conf]
 our %Per_Hash_Hooks; # key = hash address, value = { phase => hooks, ... }
 
-our %Object_Targets; # key = object address, value = [$obj, \%init_args]
+our %Object_Targets; # key = object address, value = [$obj, \%per_target_conf]
 our %Per_Object_Hooks; # key = object address, value = { phase => hooks, ... }
 
 my $sub0 = sub {0};
@@ -96,20 +96,20 @@ sub install_routines {
 }
 
 sub add_target {
-    my ($target, $target_arg, $init_args, $replace) = @_;
+    my ($target_type, $target_name, $per_target_conf, $replace) = @_;
     $replace = 1 unless defined $replace;
 
-    if ($target eq 'package') {
-        unless ($replace) { return if $Package_Targets{$target_arg} }
-        $Package_Targets{$target_arg} = $init_args;
-    } elsif ($target eq 'object') {
-        my ($addr) = "$target_arg" =~ $re_addr;
+    if ($target_type eq 'package') {
+        unless ($replace) { return if $Package_Targets{$target_name} }
+        $Package_Targets{$target_name} = $per_target_conf;
+    } elsif ($target_type eq 'object') {
+        my ($addr) = "$target_name" =~ $re_addr;
         unless ($replace) { return if $Object_Targets{$addr} }
-        $Object_Targets{$addr} = [$target_arg, $init_args];
-    } elsif ($target eq 'hash') {
-        my ($addr) = "$target_arg" =~ $re_addr;
+        $Object_Targets{$addr} = [$target_name, $per_target_conf];
+    } elsif ($target_type eq 'hash') {
+        my ($addr) = "$target_name" =~ $re_addr;
         unless ($replace) { return if $Hash_Targets{$addr} }
-        $Hash_Targets{$addr} = [$target_arg, $init_args];
+        $Hash_Targets{$addr} = [$target_name, $per_target_conf];
     }
 }
 
@@ -125,16 +125,17 @@ sub _set_default_null_routines {
 }
 
 sub get_logger {
-    my ($package, %init_args) = @_;
+    my ($package, %per_target_conf) = @_;
 
     my $caller = caller(0);
-    $init_args{category} = $caller if !defined($init_args{category});
+    $per_target_conf{category} = $caller
+        if !defined($per_target_conf{category});
     my $obj = []; $obj =~ $re_addr;
     my $pkg = "Log::ger::Obj$1"; bless $obj, $pkg;
-    add_target(object => $obj, \%init_args);
+    add_target(object => $obj, \%per_target_conf);
     if (keys %Global_Hooks) {
         require Log::ger::Heavy;
-        init_target(object => $obj, \%init_args);
+        init_target(object => $obj, \%per_target_conf);
     } else {
         # if we haven't added any hooks etc, skip init_target() process and use
         # this preconstructed routines as shortcut, to save startup overhead
@@ -145,14 +146,15 @@ sub get_logger {
 }
 
 sub import {
-    my ($package, %init_args) = @_;
+    my ($package, %per_target_conf) = @_;
 
     my $caller = caller(0);
-    $init_args{category} = $caller if !defined($init_args{category});
-    add_target(package => $caller, \%init_args);
+    $per_target_conf{category} = $caller
+        if !defined($per_target_conf{category});
+    add_target(package => $caller, \%per_target_conf);
     if (keys %Global_Hooks) {
         require Log::ger::Heavy;
-        init_target(package => $caller, \%init_args);
+        init_target(package => $caller, \%per_target_conf);
     } else {
         # if we haven't added any hooks etc, skip init_target() process and use
         # this preconstructed routines as shortcut, to save startup overhead
