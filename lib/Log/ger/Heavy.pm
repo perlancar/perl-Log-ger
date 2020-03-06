@@ -250,7 +250,8 @@ sub init_target {
 
             my ($logger0, $logger);
             $_logger_is_null = 0;
-            local $hook_args{name} = $rname;
+            local $hook_args{name} = $rname; # compat, deprecated
+            local $hook_args{routine_name} = $rname;
             local $hook_args{level} = $lnum;
             local $hook_args{str_level} = $lname;
             $logger0 = run_hooks(

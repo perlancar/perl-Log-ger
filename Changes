@@ -1,3 +1,23 @@
+0.032   2020-03-06  Released-By: PERLANCAR; Urgency: medium
+
+        - Introduce filters as a way to do custom filtering as well as to
+          extract additional information from the original logger arguments,
+          e.g. so we can do multilevel log(level=>..., message=>...), pass
+          category log(category=>..., ...) and so on.
+
+        - [INCOMPATIBLE CHANGE] [removed feature] Remove multilevel (logml)
+          stuffs and reimplement them with filters: remove logml_{subs,methods}
+          routine types, remove create_logml_routine phase, remove ArrayML
+          output. All outputs/plugins that provide create_logml_routine will
+          stop working and will need to be updated.
+
+        - [INCOMPATIBLE CHANGE] Rename some hook arguments passed to plugin for
+          clarity: target -> target_type, target_arg -> target_name, init_args
+          -> per_target_conf.
+
+        - Merge Log::ger::Format::Default from Log-ger-Default-Format.
+
+
 0.031   2020-03-04  Released-By: PERLANCAR; Urgency: medium
 
 	- Allow each routine to have its own init args; this allows e.g.
