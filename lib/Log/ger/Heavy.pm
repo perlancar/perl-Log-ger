@@ -102,10 +102,10 @@ our %Default_Hooks = (
          sub {
              my %args = @_;
              my $level = $args{level};
-             if (defined($level) && (
-                 $Current_Level < $level ||
-                     # there's only us
-                     @{ $Global_Hooks{create_log_routine} } == 1)
+             if ( # level indicates routine should be a null logger
+                 (defined $level && $Current_Level < $level) ||
+                     # there's only us that produces log routines (e.g. no outputs)
+                     @{ $Global_Hooks{create_log_routine} } == 1
              ) {
                  $_logger_is_null = 1;
                  return [sub {0}];
@@ -161,7 +161,7 @@ sub run_hooks {
         my $hook_res = $hook->[2]->(%$hook_args);
         if (defined $hook_res->[0]) {
             $res = $hook_res->[0];
-            #print "D:   got result from hook $res\n";
+            #print "D:   got result from hook $hook->[0]: $res\n";
             if (ref $flow_control eq 'CODE') {
                 last if $flow_control->($hook, $hook_res);
             } else {
@@ -289,6 +289,7 @@ sub init_target {
             push @routines, [$logger, $rname, $lnum, $type, $rinit_args||$init_args];
         }
     }
+
   CREATE_IS_ROUTINES:
     {
         my @routine_name_recs;
