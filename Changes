@@ -17,6 +17,10 @@
 
         - Merge Log::ger::Format::Default from Log-ger-Default-Format.
 
+        - Rename variables/terminologies to be clearer: target -> target type,
+          target arg -> target name, init args -> per-target conf. We also now
+          have per-message conf, produced by filter.
+
 
 0.031   2020-03-04  Released-By: PERLANCAR; Urgency: medium
 
