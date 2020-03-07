@@ -7,15 +7,15 @@ package Log::ger::Output::Null;
 
 sub get_hooks {
     return {
-        create_log_routine => [
+        create_outputter => [
             __PACKAGE__, # key
             50,          # priority
             sub {        # hook
                 my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
 
-                $Log::ger::_logger_is_null = 1;
-                my $logger = sub {0};
-                [$logger];
+                $Log::ger::_outputter_is_null = 1;
+                my $outputter = sub {0};
+                [$outputter];
             }],
     };
 }

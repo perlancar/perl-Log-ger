@@ -20,6 +20,7 @@ use vars qw(
                %Level_Aliases
                $Current_Level
                $_logger_is_null
+               $_outputter_is_null
                $_dumper
                %Global_Hooks
                %Package_Targets
@@ -83,16 +84,20 @@ our %Default_Hooks = (
              my $levels = [keys %Levels];
 
              return [{
-                 log_subs    => [map { ["log_$_", $_]    } @$levels],
-                 is_subs     => [map { ["log_is_$_", $_] } @$levels],
+                 logger_subs           => [map { ["log_$_", $_]    } @$levels],
+                 level_checker_subs    => [map { ["log_is_$_", $_] } @$levels],
                  # used when installing to hash or object
-                 log_methods => [map { ["$_", $_]        } @$levels],
-                 is_methods  => [map { ["is_$_", $_]     } @$levels],
+                 logger_methods        => [map { ["$_", $_]        } @$levels],
+                 level_checker_methods => [map { ["is_$_", $_]     } @$levels],
              }, 1];
          }],
     ],
 
-    create_log_routine => [
+    # old name for create_outputter, deprecated and will be removed in the
+    # future
+    create_log_routine => [],
+
+    create_outputter => [
         [__PACKAGE__, 10,
          # the default behavior is to create a null routine for levels that are
          # too high than the global level ($Current_Level). since we run at high
@@ -103,19 +108,26 @@ our %Default_Hooks = (
          sub {
              my %args = @_;
              my $level = $args{level};
+             my $num_outputs = 0;
+             $num_outputs += @{ $Global_Hooks{create_log_routine} }; # old name, will be removed
+             $num_outputs += @{ $Global_Hooks{create_outputter} };
              if ( # level indicates routine should be a null logger
                  (defined $level && $Current_Level < $level) ||
                      # there's only us that produces log routines (e.g. no outputs)
-                     @{ $Global_Hooks{create_log_routine} } == 1
+                     $num_outputs == 1
              ) {
-                 $_logger_is_null = 1;
+                 $_outputter_is_null = 1;
                  return [sub {0}];
              }
              [undef]; # decline, let output plugin supply logger routines
          }],
     ],
 
-    create_is_routine => [
+    # old name for create_level_checker, deprecated and will be removed in the
+    # future
+    create_is_routine => [],
+
+    create_level_checker => [
         [__PACKAGE__, 90,
          # the default behavior is to compare to global level. normally this
          # behavior suffices. we run at low priority (90) so normal plugins
@@ -234,37 +246,48 @@ sub init_target {
     my @routines;
     my $is_object = $target_type eq 'object';
 
-  CREATE_LOG_ROUTINES:
+  CREATE_LOGGER_ROUTINES:
     {
         my @routine_name_recs;
         if ($target_type eq 'package') {
-            push @routine_name_recs, @{ $routine_names->{log_subs} || [] };
+            push @routine_name_recs, @{ $routine_names->{log_subs} || [] }; # old name, will be removed
+            push @routine_name_recs, @{ $routine_names->{logger_subs} || [] };
         } else {
-            push @routine_name_recs, @{ $routine_names->{log_methods} || [] };
+            push @routine_name_recs, @{ $routine_names->{log_methods} || [] }; # old name, will be removed
+            push @routine_name_recs, @{ $routine_names->{logger_methods} || [] };
         }
+      NAME:
         for my $routine_name_rec (@routine_name_recs) {
             my ($rname, $lname, $fmtname, $rper_target_conf, $fltname)
                 = @$routine_name_rec;
             my $lnum; $lnum = $Levels{$lname} if defined $lname;
             $fmtname = 'default' if !defined($fmtname);
 
-            my ($logger0, $logger);
-            $_logger_is_null = 0;
+            my ($output_routine, $logger);
+            $_logger_is_null = 0; # old name, will be removed in the future
+            $_outputter_is_null = 0;
             local $hook_args{name} = $rname; # compat, deprecated
             local $hook_args{routine_name} = $rname;
             local $hook_args{level} = $lnum;
             local $hook_args{str_level} = $lname;
-            $logger0 = run_hooks(
-                "create_log_routine", \%hook_args, 1,
-                $target_type, $target_name)
-                or next;
+            my $outputter;
+            {
+                $outputter = run_hooks("create_log_routine", \%hook_args, 1, $target_type, $target_name) and last; # old name, will be removed in the future
+                $outputter = run_hooks("create_outputter"  , \%hook_args, 1, $target_type, $target_name);
+            }
+            die "BUG in configuration: No outputter is produced for routine name $rname" unless $outputter;
 
             { # enclosing block
-                if ($_logger_is_null) {
-                    # if logger is a null logger (sub {0}) we don't need to
-                    # format message, layout message, or care about the logger
-                    # being a subroutine/object. shortcut here for faster init.
-                    $logger = $logger0;
+                if ($_outputter_is_null
+                        || $_logger_is_null # old name, will be removed in the future
+                    ) {
+
+                    # if outputter is a null outputter (sub {0}) we don't need
+                    # to format message, layout message, or care about the
+                    # logger routine being a subroutine/object. shortcut here
+                    # for faster init.
+
+                    $logger = $outputter;
                     last;
                 }
 
@@ -275,35 +298,37 @@ sub init_target {
                 # formatter+layouter(x3) x OO/non-OO (x2) = 12 permutations. we
                 # create specialized subroutines for each case, for performance
                 # reason.
-                if ($filter) { if ($formatter) { if ($layouter) { if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname, $per_msg_conf), $per_msg_conf) };       # has-filter has-formatter has-layouter with-oo
-                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname, $per_msg_conf), $per_msg_conf) }; }     # has-filter has-formatter has-layouter  not-oo
-                                                 } else {         if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_),                                                  $per_msg_conf) };       # has-filter has-formatter  no-layouter with-oo
-                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_),                                                  $per_msg_conf) }; } }   # has-filter has-formatter  no-layouter  not-oo
-                               } else {                           if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,                         \@_,                                                   $per_msg_conf) };       # has-filter  no-formatter  no-layouter with-oo
-                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $logger0->($rper_target_conf || $per_target_conf,                         \@_,                                                   $per_msg_conf) }; } }   # has-filter  no-formatter  no-layouter  not-oo
-                } else {       if ($formatter) { if ($layouter) { if ($is_object) { $logger = sub { shift;                                                   $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname               )               ) };       #  no-filter has-formatter has-layouter with-oo
-                                                                  } else {          $logger = sub {                                                          $logger0->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname               )               ) }; }     #  no-filter has-formatter has-layouter  not-oo
-                                               } else {           if ($is_object) { $logger = sub { shift;                                                   $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_)                                                                ) };       #  no-filter has-formatter  no-layouter with-oo
-                                                                  } else {          $logger = sub {                                                          $logger0->($rper_target_conf || $per_target_conf,             $formatter->(@_)                                                                ) }; } }   #  no-filter has-formatter  no-layouter  not-oo
-                               } else {                           if ($is_object) { $logger = sub { shift;                                                   $logger0->($rper_target_conf || $per_target_conf,                         \@_                                                                 ) };       #  no-filter  no-formatter  no-layouter with-oo
-                                                                  } else {          $logger = sub {                                                          $logger0->($rper_target_conf || $per_target_conf,                         \@_                                                                 ) }; } } } #  no-filter  no-formatter  no-layouter  not-oo
+                if ($filter) { if ($formatter) { if ($layouter) { if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $outputter->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname, $per_msg_conf), $per_msg_conf) };       # has-filter has-formatter has-layouter with-oo
+                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $outputter->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname, $per_msg_conf), $per_msg_conf) }; }     # has-filter has-formatter has-layouter  not-oo
+                                                 } else {         if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $outputter->($rper_target_conf || $per_target_conf,             $formatter->(@_),                                                  $per_msg_conf) };       # has-filter has-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $outputter->($rper_target_conf || $per_target_conf,             $formatter->(@_),                                                  $per_msg_conf) }; } }   # has-filter has-formatter  no-layouter  not-oo
+                               } else {                           if ($is_object) { $logger = sub { shift; return 0 unless my $per_msg_conf = $filter->(@_); $outputter->($rper_target_conf || $per_target_conf,                         \@_,                                                   $per_msg_conf) };       # has-filter  no-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {        return 0 unless my $per_msg_conf = $filter->(@_); $outputter->($rper_target_conf || $per_target_conf,                         \@_,                                                   $per_msg_conf) }; } }   # has-filter  no-formatter  no-layouter  not-oo
+                } else {       if ($formatter) { if ($layouter) { if ($is_object) { $logger = sub { shift;                                                   $outputter->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname               )               ) };       #  no-filter has-formatter has-layouter with-oo
+                                                                  } else {          $logger = sub {                                                          $outputter->($rper_target_conf || $per_target_conf, $layouter->($formatter->(@_), $per_target_conf, $lnum, $lname               )               ) }; }     #  no-filter has-formatter has-layouter  not-oo
+                                               } else {           if ($is_object) { $logger = sub { shift;                                                   $outputter->($rper_target_conf || $per_target_conf,             $formatter->(@_)                                                                ) };       #  no-filter has-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {                                                          $outputter->($rper_target_conf || $per_target_conf,             $formatter->(@_)                                                                ) }; } }   #  no-filter has-formatter  no-layouter  not-oo
+                               } else {                           if ($is_object) { $logger = sub { shift;                                                   $outputter->($rper_target_conf || $per_target_conf,                         \@_                                                                 ) };       #  no-filter  no-formatter  no-layouter with-oo
+                                                                  } else {          $logger = sub {                                                          $outputter->($rper_target_conf || $per_target_conf,                         \@_                                                                 ) }; } } } #  no-filter  no-formatter  no-layouter  not-oo
             } # enclosing block
           L1:
-            my $rtype = $is_object ? 'log_method' : 'log_sub';
+            my $rtype = $is_object ? 'logger_method' : 'logger_sub';
             push @routines, [$logger, $rname, $lnum, $rtype, $rper_target_conf||$per_target_conf];
         }
     }
 
-  CREATE_IS_ROUTINES:
+  CREATE_LEVEL_CHECKER_ROUTINES:
     {
         my @routine_name_recs;
         my $type;
         if ($target_type eq 'package') {
-            push @routine_name_recs, @{ $routine_names->{is_subs} || [] };
-            $type = 'is_sub';
+            push @routine_name_recs, @{ $routine_names->{is_subs} || [] }; # old name, will be removed
+            push @routine_name_recs, @{ $routine_names->{level_checker_subs} || [] };
+            $type = 'level_checker_sub';
         } else {
-            push @routine_name_recs, @{ $routine_names->{is_methods} || [] };
-            $type = 'is_method';
+            push @routine_name_recs, @{ $routine_names->{is_methods} || [] }; # old name, will be removed
+            push @routine_name_recs, @{ $routine_names->{level_checker_methods} || [] };
+            $type = 'level_checker_method';
         }
         for my $routine_name_rec (@routine_name_recs) {
             my ($rname, $lname) = @$routine_name_rec;
@@ -313,10 +338,13 @@ sub init_target {
             local $hook_args{level} = $lnum;
             local $hook_args{str_level} = $lname;
 
-            my $code_is =
-                run_hooks('create_is_routine', \%hook_args, 1,
-                          $target_type, $target_name);
-            next unless $code_is;
+            my $code_is;
+            {
+                $code_is = run_hooks('create_is_routine'   , \%hook_args, 1, $target_type, $target_name) and last; # old name, will be removed
+                $code_is = run_hooks('create_level_checker', \%hook_args, 1, $target_type, $target_name);
+            }
+            die "BUG in configuration: No level_checker routine is produced for routine name $rname" unless $code_is;
+
             push @routines, [$code_is, $rname, $lnum, $type, $per_target_conf];
         }
     }

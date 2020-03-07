@@ -71,8 +71,8 @@ sub get_hooks {
             sub {        # hook
                 my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
                 return [{
-                    log_subs    => [[$sub_name   , undef, 'ml', undef, 'ml']],
-                    log_methods => [[$method_name, undef, 'ml', undef, 'ml']],
+                    logger_subs    => [[$sub_name   , undef, 'ml', undef, 'ml']],
+                    logger_methods => [[$method_name, undef, 'ml', undef, 'ml']],
                 }, $conf{exclusive}];
             },
         ],

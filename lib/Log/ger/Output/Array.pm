@@ -9,22 +9,22 @@ use strict;
 use warnings;
 
 sub get_hooks {
-    my %conf = @_;
+    my %plugin_conf = @_;
 
-    $conf{array} or die "Please specify array";
+    $plugin_conf{array} or die "Please specify array";
 
     return {
-        create_log_routine => [
+        create_outputter => [
             __PACKAGE__, # key
             50,          # priority
             sub {        # hook
                 my %hook_args = @_; # see Log::ger::Manual::Internals/"Arguments passed to hook"
 
-                my $logger = sub {
+                my $outputter = sub {
                     my ($per_target_conf, $msg, $per_msg_conf) = @_;
-                    push @{$conf{array}}, $msg;
+                    push @{$plugin_conf{array}}, $msg;
                 };
-                [$logger];
+                [$outputter];
             }],
     };
 }

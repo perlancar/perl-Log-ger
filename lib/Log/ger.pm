@@ -31,7 +31,7 @@ our $Current_Level = 30;
 our $Caller_Depth_Offset = 0;
 
 # a flag that can be used by null output to skip using formatter
-our $_logger_is_null;
+our $_outputter_is_null;
 
 our $_dumper;
 
@@ -116,10 +116,10 @@ sub add_target {
 sub _set_default_null_routines {
     $default_null_routines ||= [
         (map {(
-            [$sub0, "log_$_", $Levels{$_}, 'log_sub'],
-            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_", $Levels{$_}, 'is_sub'],
-            [$sub0, $_, $Levels{$_}, 'log_method'],
-            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "is_$_", $Levels{$_}, 'is_method'],
+            [$sub0, "log_$_", $Levels{$_}, 'logger_sub'],
+            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "log_is_$_", $Levels{$_}, 'level_checker_sub'],
+            [$sub0, $_, $Levels{$_}, 'logger_method'],
+            [$Levels{$_} > $Current_Level ? $sub0 : $sub1, "is_$_", $Levels{$_}, 'level_checker_method'],
         )} keys %Levels),
     ];
 }
@@ -175,7 +175,7 @@ sub import {
 In your module (producer):
 
  package Foo;
- use Log::ger; # will import some logging methods e.g. log_warn, log_error
+ use Log::ger; # will install some logger routines e.g. log_warn, log_error
 
  sub foo {
      ...
@@ -287,9 +287,9 @@ formatting like Log::Contextual. This eases code migration and teamwork. Each
 module author can preserve her own logging style, if wanted, and all the modules
 still use the same framework.
 
-B<Dynamic.> Outputs and levels can be changed anytime during run-time and
-logging routines will be updated automatically. This is useful in situation like
-a long-running server application: you can turn on tracing logs temporarily to
+B<Dynamic.> Outputs and levels can be changed anytime during run-time and logger
+routines will be updated automatically. This is useful in situation like a
+long-running server application: you can turn on tracing logs temporarily to
 debug problems, then turn them off again, without restarting your server.
 
 B<Interoperability.> There are modules to interop with Log::Any, either consume
