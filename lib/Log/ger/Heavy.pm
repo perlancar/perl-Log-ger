@@ -19,7 +19,6 @@ use vars qw(
                %Levels
                %Level_Aliases
                $Current_Level
-               $_logger_is_null
                $_outputter_is_null
                $_dumper
                %Global_Hooks
@@ -172,6 +171,7 @@ sub run_hooks {
     my $res;
     for my $hook (sort {$a->[1] <=> $b->[1]} @hooks)  {
         my $hook_res = $hook->[2]->(%$hook_args);
+            use DD; dd $hook_res;
         if (defined $hook_res->[0]) {
             $res = $hook_res->[0];
             #print "D:   got result from hook $hook->[0]: $res\n";
@@ -264,7 +264,6 @@ sub init_target {
             $fmtname = 'default' if !defined($fmtname);
 
             my ($output_routine, $logger);
-            $_logger_is_null = 0; # old name, will be removed in the future
             $_outputter_is_null = 0;
             local $hook_args{name} = $rname; # compat, deprecated
             local $hook_args{routine_name} = $rname;
@@ -272,15 +271,13 @@ sub init_target {
             local $hook_args{str_level} = $lname;
             my $outputter;
             {
-                $outputter = run_hooks("create_log_routine", \%hook_args, 1, $target_type, $target_name) and last; # old name, will be removed in the future
-                $outputter = run_hooks("create_outputter"  , \%hook_args, 1, $target_type, $target_name);
+                $outputter = run_hooks("create_outputter"  , \%hook_args, 1, $target_type, $target_name) and last;
+                $outputter = run_hooks("create_log_routine", \%hook_args, 1, $target_type, $target_name); # old name, will be removed in the future
             }
             die "BUG in configuration: No outputter is produced for routine name $rname" unless $outputter;
 
             { # enclosing block
-                if ($_outputter_is_null
-                        || $_logger_is_null # old name, will be removed in the future
-                    ) {
+                if ($_outputter_is_null) {
 
                     # if outputter is a null outputter (sub {0}) we don't need
                     # to format message, layout message, or care about the

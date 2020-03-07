@@ -1,3 +1,15 @@
+0.033   2020-03-07  Released-By: PERLANCAR; Urgency: medium
+
+	- Rename things for clarity. 1) routine types: log_{sub,method} ->
+	  logger_{sub,method}, is_{sub,method} -> level_checker_{sub,method}
+	  (old names still accepted for now). 2) hooks: create_is_routine ->
+	  create_level_checker, create_log_routine -> create_outputter (old
+	  names still accepted for now). This avoids confusion between "logger
+	  routine" (the final routine that gets installed to target) vs
+	  "outputter" (the routine that does actual sending to output, provided
+	  by output plugins). The "is routine" was also a bad name.
+
+
 0.032   2020-03-06  Released-By: PERLANCAR; Urgency: medium
 
         - Introduce filters as a way to do custom filtering as well as to
