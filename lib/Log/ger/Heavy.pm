@@ -171,7 +171,6 @@ sub run_hooks {
     my $res;
     for my $hook (sort {$a->[1] <=> $b->[1]} @hooks)  {
         my $hook_res = $hook->[2]->(%$hook_args);
-            use DD; dd $hook_res;
         if (defined $hook_res->[0]) {
             $res = $hook_res->[0];
             #print "D:   got result from hook $hook->[0]: $res\n";
