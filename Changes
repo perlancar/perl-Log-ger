@@ -1,3 +1,9 @@
+0.034   2020-03-09  Released-By: PERLANCAR; Urgency: medium
+
+	- Add meta() and check meta version so in the future we can reject
+	  plugins that are not up-to-date.
+
+
 0.033   2020-03-07  Released-By: PERLANCAR; Urgency: medium
 
 	- Rename things for clarity. 1) routine types: log_{sub,method} ->
