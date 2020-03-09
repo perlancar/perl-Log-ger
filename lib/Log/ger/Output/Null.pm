@@ -5,6 +5,10 @@ package Log::ger::Output::Null;
 # DIST
 # VERSION
 
+sub meta { +{
+    v => 1,
+} }
+
 sub get_hooks {
     return {
         create_outputter => [

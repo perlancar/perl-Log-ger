@@ -8,6 +8,10 @@ package Log::ger::Format::Default;
 use strict;
 use warnings;
 
+sub meta { +{
+    v => 1,
+} }
+
 sub get_hooks {
     my %conf = @_;
 

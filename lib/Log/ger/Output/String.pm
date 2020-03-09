@@ -8,6 +8,10 @@ package Log::ger::Output::String;
 use strict;
 use warnings;
 
+sub meta { +{
+    v => 1,
+} }
+
 sub get_hooks {
     my %plugin_conf = @_;
 
