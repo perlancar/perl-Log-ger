@@ -61,7 +61,9 @@ sub get_hooks {
                                 push @args, $_;
                             }
                         }
-                        no warnings 'redundant';
+                        # redefine is just a dummy category for perls < 5.22
+                        # which don't have 'redundant' yet
+                        no warnings ($warnings::Bits{'redundant'} ? 'redundant' : 'redefine');
                         sprintf $fmt, @args;
                     };
 
