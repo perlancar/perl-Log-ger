@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 sub meta { +{
-    v => 1,
+    v => 2,
 } }
 
 sub get_hooks {

@@ -6,7 +6,7 @@ package Log::ger::Output::Null;
 # VERSION
 
 sub meta { +{
-    v => 1,
+    v => 2,
 } }
 
 sub get_hooks {

@@ -229,10 +229,19 @@ sub set_plugin {
         require $mod_pm;
         my $meta  = $mod->can("meta") ? $mod->meta : {v=>1};
         my $v     = $meta->{v} || 1;
-        unless ($v == 1) {
-            die "Plugin '$mod' follows meta version $v but Log::ger ".
+
+        # history of v bumping:
+        #
+        # - v increased from 1 to 2 in Log::ger v0.037 to force all plugins that
+        #   were not compatible with Log::ger 0.032 (removed
+        #   create_logml_routine phase) to be upgraded.
+
+        unless ($v == 2) {
+            die "Plugin '$mod' (version ".(${"$mod\::VERSION"} || "dev").")".
+                " follows meta version $v but Log::ger (version ".
                 (${__PACKAGE__."::VERSION"} || "dev").
-                " requires meta version 1, please upgrade the plugin";
+                ") (>0.032) requires meta version 2, ".
+                "please upgrade the plugin first";
         }
         $hooks = &{"$mod\::get_hooks"}(%{ $args{conf} || {} });
     }
