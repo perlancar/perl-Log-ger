@@ -1,3 +1,5 @@
 language: perl
+perl:
+  - "5.10.1"
 script:
   - prove -l
