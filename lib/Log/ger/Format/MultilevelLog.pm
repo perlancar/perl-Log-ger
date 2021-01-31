@@ -1,4 +1,4 @@
-package Log::ger::Plugin::MultilevelLog;
+package Log::ger::Format::MultilevelLog;
 
 # AUTHORITY
 # DATE
@@ -92,7 +92,9 @@ sub get_hooks {
 
 =head1 SYNOPSIS
 
- use Log::ger::Plugin MultilevelLog => (
+To use for the current package:
+
+ use Log::ger::Format MultilevelLog => (
      # sub_name => 'log_it',    # optional, defaults to 'log'
      # method_name => 'log_it', # optional, defaults to 'log'
      # exclusive => 1,          # optional, defaults to 0
@@ -101,6 +103,8 @@ sub get_hooks {
 
  log('warn', 'This is a warning');
  log('debug', 'This is a debug, data is %s', $data);
+
+ log_warn "This is also a warning"; # still available, unless you set exclusive to 1
 
 
 =head1 DESCRIPTION
@@ -124,7 +128,7 @@ or:
 
  $log->log('debug', 'Blah: %s', $data);
 
-This plugin can create such log routine for you.
+This format plugin can create such log routine for you.
 
 Note: the multilevel log is slightly slower because of the extra argument and
 additional string level -> numeric level conversion. See benchmarks in
@@ -152,4 +156,4 @@ subroutines or C<LEVEL> methods (e.g. C<log_warn>, C<trace>, ...).
 
 =head1 SEE ALSO
 
-L<Log::ger::Plugin::HashArgs>
+L<Log::ger::Format::HashArgs>
