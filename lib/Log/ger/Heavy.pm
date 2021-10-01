@@ -14,20 +14,20 @@ package
     Log::ger;
 
 #IFUNBUILT
-use vars qw(
-               $re_addr
-               %Levels
-               %Level_Aliases
-               $Current_Level
-               $_outputter_is_null
-               $_dumper
-               %Global_Hooks
-               %Package_Targets
-               %Per_Package_Hooks
-               %Hash_Targets
-               %Per_Hash_Hooks
-               %Object_Targets
-               %Per_Object_Hooks
+our (
+               $re_addr,
+               %Levels,
+               %Level_Aliases,
+               $Current_Level,
+               $_outputter_is_null,
+               $_dumper,
+               %Global_Hooks,
+               %Package_Targets,
+               %Per_Package_Hooks,
+               %Hash_Targets,
+               %Per_Hash_Hooks,
+               %Object_Targets,
+               %Per_Object_Hooks,
        );
 #END IFUNBUILT
 
