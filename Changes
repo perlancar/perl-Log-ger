@@ -1,3 +1,13 @@
+0.039   2022-06-10  Released-By: PERLANCAR; Urgency: low
+
+        - No functional changes.
+
+        - [doc] Tweak Log::ger's Synopsis to make the code more explanatory.
+
+        - [internals] Replace 'use var' with 'our' as the former is discouraged
+          in 5.006+ (thanks James Raspass).
+
+
 0.038   2021-01-31  Released-By: PERLANCAR; Urgency: medium
 
 	- Rename Log::ger::Plugin::MultilevelLog to the more appropriate
