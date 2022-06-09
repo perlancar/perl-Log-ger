@@ -181,15 +181,34 @@ sub import {
 
 In your module (producer):
 
- package Foo;
- use Log::ger; # will install some logger routines e.g. log_warn, log_error
+ package MyModule;
+
+ # this will install some logger routines. by default: log_trace, log_debug,
+ # log_info, log_warn, log_error, and log_fatal. level checker routines are also
+ # installed: log_is_trace, log_is_debug, and so on.
+ use Log::ger;
 
  sub foo {
      ...
-     # produce some logs. no need to configure output or level.
+     # produce some logs. no need to configure output or level. by default
+     # output goes nowhere.
      log_error "an error occured: %03d - %s", $errcode, $errmsg;
      ...
-     log_debug "http response: %s", $http; # automatic dumping of data
+
+     # the logging routines (log_*) can automatically dump of data structure
+     log_debug "http response: %s", $http;
+
+     # log_fatal does not die by default, if you want to then die() explicitly.
+     # but there are plugins that let you do this or provide log_die etc.
+     if (blah) { log_fatal "..."; die }
+
+     # use the level checker routines (log_is_*) to avoid doing unnecessary
+     # heavy calculation
+     if (log_is_trace) {
+         my $res = some_heavy_calculation();
+         log_trace "The result is %s", $res;
+     }
+
  }
  1;
 
@@ -199,10 +218,10 @@ In your module (producer):
 
 In your application (consumer/listener):
 
- use Foo;
+ use MyModule;
  use Log::ger::Output 'Screen'; # configure output
  # level is by default 'warn'
- foo(); # the error message is shown, but debug message is not.
+ foo(); # the error message is shown, but debug/trace messages are not.
 
 =head3 Choosing multiple outputs
 
@@ -222,13 +241,20 @@ files):
 
 See L<Log::ger::Manual::Tutorial::481_Output_Composite> for more examples.
 
+There is also L<Log::ger::App> that wraps this in a simple interface so you just
+need to do:
+
+ # In your application or script:
+ use Log::ger::App;
+ use MyModule;
+
 =head3 Choosing level
 
 One way to set level:
 
  use Log::ger::Util;
  Log::ger::Util::set_level('debug'); # be more verbose
- foo(); # the error message as well as debug message are now shown
+ foo(); # the error message as well as debug message are now shown, but the trace is not
 
 There are better ways, e.g. letting users configure log level via configuration
 file or command-line option. See L<Log::ger::Manual::Tutorial::300_Level> for
