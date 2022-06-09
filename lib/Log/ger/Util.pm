@@ -1,12 +1,12 @@
 package Log::ger::Util;
 
+use strict;
+use warnings;
+
 # AUTHORITY
 # DATE
 # DIST
 # VERSION
-
-use strict;
-use warnings;
 
 require Log::ger;
 require Log::ger::Heavy;
@@ -221,7 +221,7 @@ sub set_plugin {
     if ($args{hooks}) {
         $hooks = $args{hooks};
     } else {
-        no strict 'refs';
+        no strict 'refs'; ## no critic: TestingAndDebugging::ProhibitNoStrict
         my $prefix = $args{prefix} || 'Log::ger::Plugin::';
         my $mod = $args{name};
         $mod = $prefix . $mod unless index($mod, $prefix) == 0;

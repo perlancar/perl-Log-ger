@@ -1,12 +1,12 @@
 package Log::ger::Output::Array;
 
+use strict;
+use warnings;
+
 # AUTHORITY
 # DATE
 # DIST
 # VERSION
-
-use strict;
-use warnings;
 
 sub meta { +{
     v => 2,

@@ -1,14 +1,14 @@
 package Log::ger::Plugin;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use strict;
 use warnings;
 
 use Log::ger::Util;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 sub set {
     my $pkg = shift;

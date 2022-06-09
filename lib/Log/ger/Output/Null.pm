@@ -1,3 +1,4 @@
+## no critic: TestingAndDebugging::RequireUseStrict
 package Log::ger::Output::Null;
 
 # AUTHORITY

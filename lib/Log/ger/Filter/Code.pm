@@ -1,12 +1,12 @@
 package Log::ger::Filter::Code;
 
+use strict;
+use warnings;
+
 # AUTHORITY
 # DATE
 # DIST
 # VERSION
-
-use strict;
-use warnings;
 
 sub meta { +{
     v => 1,

@@ -1,14 +1,14 @@
 package Log::ger::Plugin::MultilevelLog;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use strict;
 use warnings;
 
 use Log::ger::Util;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 sub meta { +{
     v => 2,
