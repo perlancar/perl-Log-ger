@@ -195,7 +195,7 @@ In your module (producer):
      log_error "an error occured: %03d - %s", $errcode, $errmsg;
      ...
 
-     # the logging routines (log_*) can automatically dump of data structure
+     # the logging routines (log_*) can automatically dump data structures
      log_debug "http response: %s", $http;
 
      # log_fatal does not die by default, if you want to then die() explicitly.
