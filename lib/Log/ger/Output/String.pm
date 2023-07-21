@@ -49,7 +49,7 @@ sub get_hooks {
 
 =head1 SYNOPSIS
 
- BEGIN { our '$str' }
+ BEGIN { our $str }
  use Log::ger::Output 'String' => (
      string => \$str,
      # append_newline => 0, # default is true, to mimic Log::ger::Output::Screen
