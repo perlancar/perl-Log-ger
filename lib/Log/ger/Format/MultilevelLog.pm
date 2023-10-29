@@ -132,7 +132,7 @@ This format plugin can create such log routine for you.
 
 Note: the multilevel log is slightly slower because of the extra argument and
 additional string level -> numeric level conversion. See benchmarks in
-L<Bencher::Scenarios::LogGer>.
+L<Bencher::Scenarios::Log::ger>.
 
 Note: the individual separate C<log_LEVEL> subroutines (or C<LEVEL> methods) are
 still installed, unless you specify configuration L</exclusive> to true.

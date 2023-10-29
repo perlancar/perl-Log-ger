@@ -297,7 +297,7 @@ B<Fast>. Low null-/stealth-logging overhead, about 1.5x faster than Log::Any, 3x
 faster than Log4perl, 5x faster than L<Log::Fast>, ~40x faster than
 L<Log::Contextual>, and ~100x faster than L<Log::Dispatch>.
 
-For more benchmarks, see L<Bencher::Scenarios::LogGer>.
+For more benchmarks, see L<Bencher::Scenarios::Log::ger>.
 
 B<Conditional compilation.> There is a plugin to optimize away unneeded logging
 statements, like assertion/conditional compilation, so they have zero runtime
