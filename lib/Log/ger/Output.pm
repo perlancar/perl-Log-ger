@@ -25,6 +25,7 @@ To set globally:
  Log::ger::Output->set(Screen => (
      use_color => 1,
      ...
+     )
  );
 
 or:
@@ -40,6 +41,7 @@ To set for current package only:
  Log::ger::Output->set_for_current_package(Screen => (
      use_color => 1,
      ...
+     )
  );
 
 
